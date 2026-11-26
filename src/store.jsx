@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { buildSeed, ROLES, FLUJO_FIRMAS } from './data/seed.js';
 
-const KEY = 'ssoma-dmz-demo-v1';
+const KEY = 'ssoma-dmz-demo-v2';
 const KEY_USER = 'ssoma-dmz-user';
 const Ctx = createContext(null);
 
@@ -10,7 +10,7 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.version === 1) return parsed;
+      if (parsed && parsed.version === 2) return parsed;
     }
   } catch { /* sin almacenamiento */ }
   return buildSeed();
@@ -86,6 +86,11 @@ const PERMS = {
   'capacitacion.crear': ['lider', 'asistente'],
   'epp.crear': ['asistente', 'lider'],
   'reporte.ver': ['gerente', 'lider', 'supervisor', 'asistente', 'analista'],
+  'salud.editar': ['medico'],
+  'salud.ver': ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'medico'],
+  'ambiente.crear': ['lider', 'supervisor', 'asistente', 'analista'],
+  'gestion.editar': ['gerente', 'analista', 'lider'],
+  'ipercc.crear': ['lider', 'supervisor', 'sup_mant', 'trabajador'],
   'tablero.ver': ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'sup_mant', 'medico'],
 };
 export const can = (user, accion) => !!user && (PERMS[accion] || []).includes(user.rol);

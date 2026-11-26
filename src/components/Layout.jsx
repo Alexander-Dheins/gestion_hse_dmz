@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Wrench, FileSignature, Grid3x3, ClipboardCheck, AlertTriangle, ListChecks,
-  Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu,
+  Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '../store.jsx';
@@ -28,15 +28,16 @@ export const NAV = [
     { to: '/capacitaciones', label: 'Capacitaciones', icon: GraduationCap, roles: STAFF },
     { to: '/epp', label: 'EPP', icon: HardHat, roles: STAFF },
   ] },
+  { grupo: 'Salud y ambiente', items: [
+    { to: '/salud', label: 'Salud ocupacional', icon: HeartPulse, roles: ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'medico'] },
+    { to: '/ambiente', label: 'Medio ambiente', icon: Leaf, roles: STAFF },
+  ] },
   { grupo: 'Gestión', items: [
+    { to: '/gestion', label: 'PASSO, comité y auditorías', icon: Award, roles: STAFF },
+    { to: '/formatos', label: 'Formatos', icon: FileStack, roles: STAFF },
     { to: '/archivos', label: 'Repositorio de archivos', icon: FolderTree, roles: ALL },
     { to: '/reportes', label: 'Reportes a la unidad', icon: FileText, roles: ['gerente', 'lider', 'supervisor', 'asistente', 'analista'] },
     { to: '/roles', label: 'Roles y permisos', icon: ShieldCheck, roles: ALL },
-  ] },
-  { grupo: 'Próximas fases', items: [
-    { to: '/fase/salud', label: 'Salud ocupacional', icon: HeartPulse, roles: STAFF, fase: 2 },
-    { to: '/fase/ambiente', label: 'Medio ambiente', icon: Leaf, roles: STAFF, fase: 3 },
-    { to: '/fase/gestion', label: 'PASSO y auditorías', icon: Award, roles: STAFF, fase: 2 },
   ] },
 ];
 
@@ -69,7 +70,6 @@ export default function Layout() {
                   <NavLink key={i.to} to={i.to} end={i.end} className="nav-item">
                     <i.icon size={17} />
                     <span>{i.label}</span>
-                    {i.fase && <em className="nav-fase">F{i.fase}</em>}
                   </NavLink>
                 ))}
               </div>

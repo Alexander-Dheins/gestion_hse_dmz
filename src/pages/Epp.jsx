@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
+import { FormatoModal } from '../components/Formato.jsx';
+import { fmtEpp } from '../formatos.jsx';
 import { useStore, can, fmtFecha, nombreUnidad, nombrePersonal, nextId, hoy } from '../store.jsx';
 import { Badge, Card, PageHeader, Modal, Field, Empty } from '../components/ui.jsx';
 
@@ -8,6 +10,7 @@ const ITEMS = ['Casco con barbiquejo', 'Lentes de seguridad', 'Guantes de impact
 export default function Epp() {
   const { db, user, inScope, visibleUnits, update } = useStore();
   const [nueva, setNueva] = useState(null);
+  const [formato, setFormato] = useState(null);
   const lista = db.epp.filter((e) => inScope(e.unidad)).sort((a, b) => b.fecha.localeCompare(a.fecha));
   const guardar = () => {
     update((d) => { d.epp.push({ id: nextId(d.epp, 'EPP'), ...nueva, fecha: hoy(), firmado: false }); }, 'Entrega de EPP registrada, pendiente de firma del trabajador');
@@ -16,8 +19,8 @@ export default function Epp() {
   const firmar = (e) => update((d) => { d.epp.find((x) => x.id === e.id).firmado = true; }, 'Entrega firmada');
   return (
     <>
-      <PageHeader title="Equipos de protección personal" subtitle="Entregas firmadas por el trabajador y control de renovación (módulo de fase 2, vista previa)."
-        actions={can(user, 'epp.crear') && <button className="btn btn-primary" onClick={() => { const w = db.personal.find((p) => visibleUnits.includes(p.unidad)); setNueva({ unidad: w?.unidad, personalId: w?.id, item: ITEMS[0] }); }}><Plus size={16} /> Registrar entrega</button>} />
+      <PageHeader title="Equipos de protección personal" subtitle="Entregas firmadas por el trabajador y control de renovación."
+        actions={<><button className="btn" onClick={() => setFormato(fmtEpp(db, visibleUnits[0]))}><FileText size={16} /> Formato del mes</button>{can(user, 'epp.crear') && <button className="btn btn-primary" onClick={() => { const w = db.personal.find((p) => visibleUnits.includes(p.unidad)); setNueva({ unidad: w?.unidad, personalId: w?.id, item: ITEMS[0] }); }}><Plus size={16} /> Registrar entrega</button>}</>} />
       <Card>
         {lista.length === 0 && <Empty>Sin entregas registradas.</Empty>}
         <table className="table">
@@ -43,6 +46,7 @@ export default function Epp() {
           <Field label="EPP"><select value={nueva.item} onChange={(e) => setNueva({ ...nueva, item: e.target.value })}>{ITEMS.map((i) => <option key={i}>{i}</option>)}</select></Field>
         </Modal>
       )}
+      {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
     </>
   );
 }

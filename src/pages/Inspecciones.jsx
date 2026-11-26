@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Camera, WifiOff } from 'lucide-react';
+import { Plus, Camera, WifiOff, FileText } from 'lucide-react';
+import { FormatoModal } from '../components/Formato.jsx';
+import { fmtInspeccion } from '../formatos.jsx';
 import { useStore, can, fmtFecha, nombreUnidad, nombreUsuario, nextId, hoy } from '../store.jsx';
 import { Badge, Card, PageHeader, Modal, Field, Empty } from '../components/ui.jsx';
 import { CHECKLIST_BASE } from '../data/seed.js';
@@ -11,6 +13,7 @@ export default function Inspecciones() {
   const { db, user, inScope, visibleUnits, update } = useStore();
   const [params, setParams] = useSearchParams();
   const [nueva, setNueva] = useState(null);
+  const [formato, setFormato] = useState(null);
   const lista = db.inspecciones.filter((x) => inScope(x.unidad)).sort((a, b) => b.fecha.localeCompare(a.fecha));
   const responsables = db.usuarios.filter((u) => u.rol !== 'trabajador' && (!u.unidad || visibleUnits.includes(u.unidad)));
 
@@ -33,14 +36,18 @@ export default function Inspecciones() {
     const ok = evaluados.filter((x) => x.r === 'cumple').length;
     const hallazgos = nueva.items.filter((x) => x.r === 'no');
     const cumplimiento = evaluados.length ? Math.round((ok / evaluados.length) * 100) : 100;
+    const id = nextId(db.inspecciones, 'IN');
+    const rec = { id, tipo: nueva.tipo, unidad: nueva.unidad, paradaId: nueva.paradaId || null, fecha: hoy(), inspector: user.id, cumplimiento, hallazgos: hallazgos.length, estado: hallazgos.length ? 'Con hallazgos' : 'Conforme', items: nueva.items.map(({ item, r, obs }) => ({ item, r, obs })) };
+    const planesNuevos = [];
+    hallazgos.forEach((h) => {
+      planesNuevos.push({ id: nextId([...db.planes, ...planesNuevos], 'PA'), origen: id, unidad: nueva.unidad, descripcion: `${h.item}${h.obs ? ': ' + h.obs : ''}`, responsable: h.resp, vence: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), estado: 'Abierto' });
+    });
     update((d) => {
-      const id = nextId(d.inspecciones, 'IN');
-      d.inspecciones.push({ id, tipo: nueva.tipo, unidad: nueva.unidad, paradaId: nueva.paradaId || null, fecha: hoy(), inspector: user.id, cumplimiento, hallazgos: hallazgos.length, estado: hallazgos.length ? 'Con hallazgos' : 'Conforme' });
-      hallazgos.forEach((h) => {
-        d.planes.push({ id: nextId(d.planes, 'PA'), origen: id, unidad: nueva.unidad, descripcion: `${h.item}${h.obs ? ': ' + h.obs : ''}`, responsable: h.resp, vence: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), estado: 'Abierto' });
-      });
+      d.inspecciones.push(rec);
+      d.planes.push(...planesNuevos);
     }, hallazgos.length ? `Inspección registrada · ${hallazgos.length} planes de acción creados` : 'Inspección registrada sin hallazgos');
     setNueva(null);
+    setFormato(fmtInspeccion({ ...db, planes: [...db.planes, ...planesNuevos] }, rec));
   };
 
   return (
@@ -50,7 +57,7 @@ export default function Inspecciones() {
       <Card>
         {lista.length === 0 && <Empty>Sin inspecciones registradas.</Empty>}
         <table className="table">
-          <thead><tr><th>N.º</th><th>Tipo</th><th>Unidad / parada</th><th>Fecha</th><th>Inspector</th><th>Cumplimiento</th><th>Estado</th></tr></thead>
+          <thead><tr><th>N.º</th><th>Tipo</th><th>Unidad / parada</th><th>Fecha</th><th>Inspector</th><th>Cumplimiento</th><th>Estado</th><th /></tr></thead>
           <tbody>
             {lista.map((x) => (
               <tr key={x.id}>
@@ -61,6 +68,7 @@ export default function Inspecciones() {
                 <td>{nombreUsuario(db, x.inspector)}</td>
                 <td><span className={`pct-chip ${x.cumplimiento >= 90 ? 'ok' : x.cumplimiento >= 80 ? 'warn' : 'bad'}`}>{x.cumplimiento}%</span></td>
                 <td><Badge>{x.estado}</Badge>{x.hallazgos > 0 && <span className="small muted"> {x.hallazgos} hallazgos</span>}</td>
+                <td><button className="btn btn-sm" onClick={() => setFormato(fmtInspeccion(db, x))}><FileText size={14} /> Formato</button></td>
               </tr>
             ))}
           </tbody>
@@ -69,7 +77,7 @@ export default function Inspecciones() {
 
       {nueva && (
         <Modal wide title="Nueva inspección" onClose={() => setNueva(null)}
-          footer={<><span className="muted small grow"><WifiOff size={14} /> En la app móvil se guarda sin señal y se sincroniza después.</span><button className="btn" onClick={() => setNueva(null)}>Cancelar</button><button className="btn btn-primary" onClick={guardar}>Registrar</button></>}>
+          footer={<><span className="muted small grow"><WifiOff size={14} /> En la app móvil se guarda sin señal y se sincroniza después.</span><button className="btn" onClick={() => setNueva(null)}>Cancelar</button><button className="btn btn-primary" onClick={guardar}><FileText size={15} /> Registrar y generar formato</button></>}>
           <div className="form-3">
             <Field label="Tipo">
               <select value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })} disabled={user.rol === 'trabajador'}>
@@ -118,6 +126,7 @@ export default function Inspecciones() {
           </table>
         </Modal>
       )}
+      {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
     </>
   );
 }

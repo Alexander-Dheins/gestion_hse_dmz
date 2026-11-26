@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Bell } from 'lucide-react';
+import { AlertTriangle, Bell, FileText } from 'lucide-react';
+import { FormatoModal } from '../components/Formato.jsx';
+import { fmtIncidente } from '../formatos.jsx';
 import { useStore, can, fmtFecha, nombreUnidad, nombreUsuario, nextId, hoy, indicadores } from '../store.jsx';
 import { Badge, Card, PageHeader, Modal, Field, Empty, Stat } from '../components/ui.jsx';
 
@@ -11,6 +13,7 @@ export default function Incidentes() {
   const [params, setParams] = useSearchParams();
   const [nuevo, setNuevo] = useState(null);
   const [inv, setInv] = useState(null);
+  const [formato, setFormato] = useState(null);
   const lista = db.incidentes.filter((x) => inScope(x.unidad)).sort((a, b) => b.fecha.localeCompare(a.fecha));
   const kpi = indicadores(db, visibleUnits);
 
@@ -24,10 +27,10 @@ export default function Incidentes() {
 
   const guardar = () => {
     if (!nuevo.descripcion.trim()) return;
-    update((d) => {
-      d.incidentes.push({ id: nextId(d.incidentes, 'INC'), ...nuevo, paradaId: nuevo.paradaId || null, diasPerdidos: +nuevo.diasPerdidos || 0, fecha: hoy(), estado: 'En investigación', reportadoPor: user.id });
-    }, 'Incidente reportado · se notificó al líder HSE y a la unidad minera');
+    const rec = { id: nextId(db.incidentes, 'INC'), ...nuevo, paradaId: nuevo.paradaId || null, diasPerdidos: +nuevo.diasPerdidos || 0, fecha: hoy(), estado: 'En investigación', reportadoPor: user.id };
+    update((d) => { d.incidentes.push(rec); }, 'Incidente reportado · se notificó al líder HSE y a la unidad minera');
     setNuevo(null);
+    setFormato(fmtIncidente(db, rec));
   };
   const cerrarInv = () => {
     update((d) => {
@@ -66,7 +69,7 @@ export default function Incidentes() {
                 <td className="nowrap">{fmtFecha(x.fecha)}</td>
                 <td className="center">{x.diasPerdidos}</td>
                 <td><Badge>{x.estado}</Badge></td>
-                <td>{x.estado === 'En investigación' && can(user, 'incidente.investigar') && <button className="btn btn-sm" onClick={() => setInv({ id: x.id, causa: '', accion: '' })}>Investigar</button>}</td>
+                <td className="actions-cell">{x.estado === 'En investigación' && can(user, 'incidente.investigar') && <button className="btn btn-sm" onClick={() => setInv({ id: x.id, causa: '', accion: '' })}>Investigar</button>}<button className="btn btn-sm" onClick={() => setFormato(fmtIncidente(db, x))}><FileText size={14} /> Formato</button></td>
               </tr>
             ))}
           </tbody>
@@ -75,7 +78,7 @@ export default function Incidentes() {
 
       {nuevo && (
         <Modal title="Reportar incidente" onClose={() => setNuevo(null)}
-          footer={<><span className="muted small grow"><Bell size={14} /> Se avisará al líder HSE y a la unidad.</span><button className="btn" onClick={() => setNuevo(null)}>Cancelar</button><button className="btn btn-danger" onClick={guardar}>Enviar reporte</button></>}>
+          footer={<><span className="muted small grow"><Bell size={14} /> Se avisará al líder HSE y a la unidad.</span><button className="btn" onClick={() => setNuevo(null)}>Cancelar</button><button className="btn btn-danger" onClick={guardar}>Enviar y generar reporte</button></>}>
           <div className="form-2">
             <Field label="Tipo"><select value={nuevo.tipo} onChange={(e) => setNuevo({ ...nuevo, tipo: e.target.value })}>{TIPOS.map((t) => <option key={t}>{t}</option>)}</select></Field>
             <Field label="Unidad"><select value={nuevo.unidad} onChange={(e) => setNuevo({ ...nuevo, unidad: e.target.value, paradaId: '' })}>{visibleUnits.map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}</select></Field>
@@ -97,6 +100,7 @@ export default function Incidentes() {
           <Field label="Acción correctiva (crea un plan de acción)"><input value={inv.accion} onChange={(e) => setInv({ ...inv, accion: e.target.value })} /></Field>
         </Modal>
       )}
+      {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
     </>
   );
 }

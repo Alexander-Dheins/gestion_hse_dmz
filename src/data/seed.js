@@ -1,4 +1,5 @@
 // Datos 100% ficticios para la demo. Ninguna persona, unidad ni empresa es real.
+import { buildIpercContinuo, buildMonitoreos, buildResiduos, buildDerrames, buildAspectos, buildPasso, buildActas, buildRequisitos, buildAuditorias, buildCambios } from './seed2.js';
 
 const DAY = 86400000;
 export const iso = (offsetDays = 0) => {
@@ -295,6 +296,7 @@ export function buildCarpetas() {
   add('f06a', 'Auditorías internas 2026', 'f06');
   add('f06b', 'Auditorías del titular minero', 'f06');
 
+  add('f08', '08 Formatos registrados', 'root', { acl: { gerente: 'admin', lider: 'editar', supervisor: 'subir', asistente: 'editar', analista: 'editar', sup_mant: 'ver', medico: 'ver', trabajador: 'ninguno' } });
   add('f07', '07 Formatos y plantillas', 'root', { acl: { gerente: 'admin', lider: 'ver', supervisor: 'ver', asistente: 'ver', analista: 'editar', sup_mant: 'ver', medico: 'ver', trabajador: 'ver' } });
   return c;
 }
@@ -346,7 +348,7 @@ export function buildArchivos() {
 
 export function buildSeed() {
   return {
-    version: 1,
+    version: 2,
     unidades: UNIDADES,
     usuarios: USUARIOS,
     personal: buildPersonal(),
@@ -362,6 +364,16 @@ export function buildSeed() {
     archivos: buildArchivos(),
     // Horas hombre del año por unidad (para IF / IS / IA)
     hh: { UM1: 412000, UM2: 356000, UM3: 128000, UM4: 154000, UM5: 64000, UM6: 82000, UM7: 97000 },
+    ipercContinuo: buildIpercContinuo(),
+    monitoreos: buildMonitoreos(),
+    residuos: buildResiduos(),
+    derrames: buildDerrames(),
+    aspectos: buildAspectos(),
+    passo: buildPasso(),
+    actas: buildActas(),
+    requisitos: buildRequisitos(),
+    auditorias: buildAuditorias(),
+    cambios: buildCambios(),
     bitacora: [],
   };
 }

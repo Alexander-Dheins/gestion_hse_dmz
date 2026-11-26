@@ -18,7 +18,10 @@ import Epp from './pages/Epp.jsx';
 import Archivos from './pages/Archivos.jsx';
 import Reportes from './pages/Reportes.jsx';
 import Roles from './pages/Roles.jsx';
-import Fase from './pages/Fase.jsx';
+import Salud from './pages/Salud.jsx';
+import Ambiente from './pages/Ambiente.jsx';
+import Gestion from './pages/Gestion.jsx';
+import Formatos from './pages/Formatos.jsx';
 
 export default function App() {
   const { user } = useStore();
@@ -42,7 +45,13 @@ export default function App() {
         <Route path="archivos" element={<Archivos />} />
         <Route path="reportes" element={<Reportes />} />
         <Route path="roles" element={<Roles />} />
-        <Route path="fase/:id" element={<Fase />} />
+        <Route path="salud" element={<Salud />} />
+        <Route path="ambiente" element={<Ambiente />} />
+        <Route path="gestion" element={<Gestion />} />
+        <Route path="formatos" element={<Formatos />} />
+        <Route path="fase/salud" element={<Navigate to="/salud" replace />} />
+        <Route path="fase/ambiente" element={<Navigate to="/ambiente" replace />} />
+        <Route path="fase/gestion" element={<Navigate to="/gestion" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

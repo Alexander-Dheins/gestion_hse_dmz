@@ -1,5 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, PenLine, CheckCircle2, Circle, Printer } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, PenLine, CheckCircle2, Circle, FileText } from 'lucide-react';
+import { FormatoModal } from '../components/Formato.jsx';
+import { fmtPermiso } from '../formatos.jsx';
 import { useStore, fmtFecha, nombreUnidad, nombreUsuario, nombrePersonal, puedeFirmar, acreditacion, motivosBloqueo } from '../store.jsx';
 import { Badge, Card, PageHeader, Empty } from '../components/ui.jsx';
 import { TIPOS_PERMISO, ETIQUETA_FIRMA, ROLES } from '../data/seed.js';
@@ -7,6 +10,7 @@ import { TIPOS_PERMISO, ETIQUETA_FIRMA, ROLES } from '../data/seed.js';
 export default function PermisoDetalle() {
   const { id } = useParams();
   const { db, user, update, notify, inScope } = useStore();
+  const [formato, setFormato] = useState(null);
   const p = db.permisos.find((x) => x.id === id);
   if (!p || !inScope(p.unidad)) return <Empty>Permiso no encontrado o fuera de tu alcance.</Empty>;
   const parada = db.paradas.find((x) => x.id === p.paradaId);
@@ -42,7 +46,7 @@ export default function PermisoDetalle() {
           {puede && <button className="btn btn-primary" onClick={firmar}><PenLine size={16} /> Firmar como {ETIQUETA_FIRMA[user.rol].toLowerCase()}</button>}
           {puedeCerrar && <button className="btn" onClick={() => cambiar('Cerrado')}>Cerrar permiso</button>}
           {puedeAnular && <button className="btn btn-ghost" onClick={() => cambiar('Anulado')}>Anular</button>}
-          <button className="btn btn-ghost" onClick={() => window.print()}><Printer size={16} /> Imprimir</button>
+          <button className="btn" onClick={() => setFormato(fmtPermiso(db, p))}><FileText size={16} /> Generar formato</button>
         </>} />
 
       <div className="grid-2">
@@ -101,6 +105,7 @@ export default function PermisoDetalle() {
           <p className="muted small">Cada firma queda registrada con usuario, fecha y hora, y no se puede borrar. El orden de firmas se configura por unidad y por tipo de trabajo.</p>
         </Card>
       </div>
+      {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
     </>
   );
 }
