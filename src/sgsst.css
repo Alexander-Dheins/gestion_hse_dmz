@@ -191,3 +191,5 @@ td.pg-c { border: 2px solid #fff; }
 .hz-st .badge { white-space: normal; line-height: 1.25; display: inline-block; max-width: 110px; }
 .pg-table td:first-child { min-width: 270px; }
 .pg-table td:first-child strong { font-size: 13px; }
+
+@media (min-width:1280px){.stats-ind{grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}.stats-ind .stat-label{min-height:2.6em}}

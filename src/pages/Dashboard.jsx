@@ -22,7 +22,7 @@ export default function Dashboard() {
   const abiertos = planes.filter((p) => p.estado !== 'Cerrado');
   const vencidos = abiertos.filter((p) => p.vence < hoy());
   const kpi = indicadoresSg(db, { sedes: visibleUnits, meses: rango(0, ultimoMesCerrado(db)), anio: ANIO });
-  const habil = personal.length ? Math.round(((personal.length - bloqueados.length) / personal.length) * 100) : 0;
+  const metas = db.estadisticas.metas || { IF: 0.6, TRIR: 4.72 };
 
   const porUnidad = visibleUnits.map((u) => ({
     u, abiertos: planes.filter((p) => p.unidad === u && p.estado !== 'Cerrado').length,
@@ -34,13 +34,14 @@ export default function Dashboard() {
     <>
       <PageHeader title={`Hola, ${user.nombre.split(' ')[0]}`} subtitle={`${ROLES[user.rol].nombre} · ${visibleUnits.length === 1 ? nombreUnidad(db, visibleUnits[0]) : `${visibleUnits.filter((u) => !u.startsWith('T')).length} unidades mineras y ${visibleUnits.filter((u) => u.startsWith('T')).length} talleres`} · ${fmtFecha(hoy())}`} />
 
-      <div className="stats">
-        <Stat label="Personal habilitado" value={`${habil}%`} hint={`${bloqueados.length} bloqueados · ${porVencer.length} por vencer`} tone={bloqueados.length ? 'warn' : 'ok'} />
-        <Stat label="Paradas en curso" value={enCurso.length} hint={`${proximas.length} planificadas`} />
-        <Stat label="Permisos por firmar" value={pendientes.length} hint={misFirmas.length ? `${misFirmas.length} esperan tu firma` : 'Ninguno espera tu firma'} tone={misFirmas.length ? 'warn' : ''} />
+      <div className="stats stats-ind">
+        <Stat label="Índice de frecuencia general" value={kpi.IF.toFixed(2)} hint={`Meta ${metas.IF.toFixed(2)} · ${kpi.lti + kpi.fat} incapacitantes`} tone={kpi.IF > metas.IF ? 'bad' : 'ok'} />
+        <Stat label="Índice de gravedad" value={kpi.IG.toFixed(2)} hint={`${kpi.dias} días perdidos`} />
+        <Stat label="Índice de accidentabilidad" value={kpi.IA.toFixed(2)} hint="IF × IG / 1000" />
+        <Stat label="LTIR" value={kpi.LTIR.toFixed(2)} hint={`${kpi.lti} con tiempo perdido`} />
+        <Stat label="TRIR" value={kpi.TRIR.toFixed(2)} hint={`Meta ${metas.TRIR.toFixed(2)} · ${kpi.registrables} registrables`} tone={kpi.TRIR > metas.TRIR ? 'bad' : 'ok'} />
         <Stat label="Planes de acción abiertos" value={abiertos.length} hint={`${vencidos.length} vencidos`} tone={vencidos.length ? 'bad' : 'ok'} />
-        <Stat label="Índice de frecuencia" value={kpi.IF.toFixed(2)} hint={`IG ${kpi.IG.toFixed(2)} · TRIR ${kpi.TRIR.toFixed(2)}`} />
-        <Stat label="Horas hombre (año)" value={kpi.hht.toLocaleString('es-PE')} hint={`${kpi.eventos.length} eventos en el año`} />
+        <Stat label="Horas hombre" value={kpi.hht.toLocaleString('es-PE')} hint={`${kpi.eventos.length} eventos en el año`} />
       </div>
 
       <div className="grid-2">
