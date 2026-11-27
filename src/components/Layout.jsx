@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Wrench, FileSignature, Grid3x3, ClipboardCheck, AlertTriangle, ListChecks,
-  Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack,
+  Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack, LayoutGrid,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '../store.jsx';
@@ -76,6 +76,7 @@ export default function Layout() {
             );
           })}
         </nav>
+        <a href="/" className="nav-item sidebar-portal"><LayoutGrid size={17} /><span>Panel de acceso</span></a>
         <div className="sidebar-foot">Datos ficticios para demostración</div>
       </aside>
 
