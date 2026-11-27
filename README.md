@@ -1,3 +1,24 @@
+# DIMARZA · Plataformas internas (demo)
+
+Demo del panel central de acceso con tres módulos:
+
+| Ruta | Módulo |
+| --- | --- |
+| `/` | Splash, ingreso con DNI + PIN y panel con los módulos habilitados para el usuario |
+| `/admin` | **Administración de accesos**: trabajadores, grupos (permisos por módulo), carga masiva en Excel/CSV y envío de usuario + PIN temporal por correo/WhatsApp (simulado) |
+| `/capacitaciones` | **Capacitaciones** según las maquetas (Propuesta 3): vista móvil del trabajador (cursos en video con 3 preguntas por módulo, encuesta, nota final, certificado con QR, avisos, perfil) y vista de escritorio para supervisor y administrador (personal, cursos, programación, certificados, reportes) |
+| `/ssoma` | **SSOMA DMZ** (sistema de gestión HSE, detalle abajo) |
+
+### Acceso por grupos
+
+El acceso de cada trabajador es la suma de los permisos de sus grupos. Cada grupo define:
+Capacitaciones (sin acceso / participante / supervisor / administrador), SSOMA DMZ (sí/no) y Administración de accesos (sí/no).
+Grupos iniciales: Administradores de la plataforma, Capacitaciones · Administradores, Capacitaciones · Supervisores, Capacitaciones · Participantes, SSOMA DMZ · Usuarios y Acceso completo.
+
+Usuarios de prueba (PIN `1234`): Admin TI `10000001`, Jhonatan Ramírez `45872103` (capacitaciones + SSOMA), Carlos Mendoza `40221587` (supervisor), Andrea Salas `41556790` (admin. de capacitaciones), Luis Torres `46120934` (solo capacitaciones), Rosa Paredes `43987015` (solo SSOMA).
+
+---
+
 # SSOMA DMZ · Sistema de Gestión HSE (demo)
 
 Demo funcional del sistema de gestión de Seguridad, Salud Ocupacional y Medio Ambiente para trabajos de mantenimiento en plantas mineras (molinos de bolas y equipos similares) en varias unidades mineras.

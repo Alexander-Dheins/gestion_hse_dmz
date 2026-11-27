@@ -7,11 +7,17 @@ import Portal from './portal/Portal.jsx';
 import CapacitacionesApp from './capacitaciones/CapacitacionesApp.jsx';
 import './styles.css';
 import './portal/portal.css';
+import './acceso/acceso.css';
+import AdminApp from './admin/AdminApp.jsx';
+import { SinAcceso } from './acceso/Shell.jsx';
+import { sesionActual } from './acceso/db.jsx';
 
 // Panel central de acceso:
 //   /                 -> portal (splash + selección de módulo)
 //   /ssoma/...        -> Sistema de Gestión HSE (app existente)
 //   /capacitaciones/… -> Plataforma de Capacitaciones
+//   /admin/…          -> Administración de accesos (trabajadores, grupos, carga masiva)
+// El acceso a cada módulo depende de los grupos del trabajador con sesión iniciada.
 const path = window.location.pathname;
 const enModulo = (base) => path === base || path.startsWith(base + '/');
 
@@ -20,14 +26,24 @@ const RUTAS_HSE = ['unidades', 'paradas', 'permisos', 'iperc', 'inspecciones', '
 const primero = path.split('/')[1];
 if (RUTAS_HSE.includes(primero)) window.history.replaceState(null, '', '/ssoma' + path);
 
+const { persona, accesos } = sesionActual();
 let root;
-if (enModulo('/ssoma') || RUTAS_HSE.includes(primero)) {
-  root = (
+if ((enModulo('/ssoma') || enModulo('/capacitaciones') || enModulo('/admin')) && !persona) {
+  // Sin sesión: primero se ingresa en el portal
+  window.location.replace('/');
+} else if (enModulo('/ssoma') || RUTAS_HSE.includes(primero)) {
+  root = !accesos.ssoma ? <SinAcceso modulo="SSOMA DMZ" /> : (
     <StoreProvider>
       <BrowserRouter basename="/ssoma">
         <App />
       </BrowserRouter>
     </StoreProvider>
+  );
+} else if (enModulo('/admin')) {
+  root = (
+    <BrowserRouter basename="/admin">
+      <AdminApp />
+    </BrowserRouter>
   );
 } else if (enModulo('/capacitaciones')) {
   root = (
@@ -40,4 +56,4 @@ if (enModulo('/ssoma') || RUTAS_HSE.includes(primero)) {
   root = <Portal />;
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>{root}</React.StrictMode>);
+if (root) ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>{root}</React.StrictMode>);
