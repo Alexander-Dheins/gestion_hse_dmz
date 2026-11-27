@@ -9,6 +9,7 @@ import { CLASES_EVENTO, AREAS_EVENTO, PARTES_CUERPO, GRUPOS_EDAD, ANTIGUEDADES, 
 import { clase as claseDe, indicadores, diasSinLti, rango } from '../lib/sgsst.js';
 import { COLOR_CLASE } from '../components/charts.jsx';
 import PanelEventos from './eventos/PanelEventos.jsx';
+import { SelectorAdjuntos, EvidenciasModal, BotonAdjuntos, subirAdjuntos, registrarAdjuntos } from '../components/Adjuntos.jsx';
 
 const TONO_GRUPO = { lesion: 'bad', incidente: 'warn', enfermedad: 'info', otro: 'muted' };
 
@@ -20,6 +21,9 @@ export default function Incidentes() {
   const [formato, setFormato] = useState(null);
   const [q, setQ] = useState('');
   const [fClase, setFClase] = useState('');
+  const [archivos, setArchivos] = useState([]);
+  const [evid, setEvid] = useState(null);
+  const [guardando, setGuardando] = useState(false);
   const tab = params.get('tab') || 'registro';
   const staff = user.rol !== 'trabajador';
   const lista = db.incidentes.filter((x) => inScope(x.unidad)).sort((a, b) => b.fecha.localeCompare(a.fecha))
@@ -36,14 +40,18 @@ export default function Incidentes() {
   }, [params]); // eslint-disable-line
 
   const lesion = nuevo && claseDe(nuevo.clase).grupo === 'lesion';
-  const guardar = () => {
+  const guardar = async () => {
     if (!nuevo.descripcion.trim()) return;
     const rec = {
       id: nextId(db.incidentes, 'INC'), ...nuevo, tipo: tipoDeClase(nuevo.clase), paradaId: nuevo.paradaId || null,
       diasPerdidos: nuevo.clase === 'LTI' ? +nuevo.diasPerdidos || 0 : 0, estado: 'En investigación', reportadoPor: user.id,
       parteCuerpo: lesion ? nuevo.parteCuerpo || null : null, edad: nuevo.edad || null, antiguedad: nuevo.antiguedad || null, genero: nuevo.genero || null,
     };
-    update((d) => { d.incidentes.push(rec); }, `${claseDe(rec.clase).nombre} reportado · se notificó al líder HSE y a la unidad`);
+    setGuardando(true);
+    const items = await subirAdjuntos(archivos, user);
+    update((d) => { d.incidentes.push({ ...rec, adjuntos: registrarAdjuntos(d, 'incidentes', rec.id, items) }); }, `${claseDe(rec.clase).nombre} reportado${items.length ? ` con ${items.length} archivo(s)` : ''} · se notificó al líder HSE y a la unidad`);
+    setGuardando(false);
+    setArchivos([]);
     setNuevo(null);
     setFormato(fmtIncidente(db, rec));
   };
@@ -86,7 +94,7 @@ export default function Incidentes() {
             {lista.length === 0 && <Empty>Sin eventos reportados.</Empty>}
             <div className="table-wrap">
               <table className="table">
-                <thead><tr><th>N.º</th><th>Clasificación</th><th>Descripción</th><th>Sede / área</th><th>Fecha</th><th>Días perdidos</th><th>Estado</th><th /></tr></thead>
+                <thead><tr><th>N.º</th><th>Clasificación</th><th>Descripción</th><th>Sede / área</th><th>Fecha</th><th>Días perdidos</th><th>Estado</th><th>Archivos</th><th /></tr></thead>
                 <tbody>
                   {lista.slice(0, 150).map((x) => {
                     const c = claseDe(x.clase);
@@ -99,6 +107,7 @@ export default function Incidentes() {
                         <td className="nowrap">{fmtFecha(x.fecha)}</td>
                         <td className="center">{x.diasPerdidos || 0}</td>
                         <td><Badge tone={x.estado === 'Cerrado' ? 'ok' : TONO_GRUPO[c.grupo]}>{x.estado}</Badge></td>
+                        <td><BotonAdjuntos registro={x} onClick={() => setEvid(x)} /></td>
                         <td className="actions-cell">{x.estado === 'En investigación' && can(user, 'incidente.investigar') && <button className="btn btn-sm" onClick={() => setInv({ id: x.id, causa: '', accion: '' })}>Investigar</button>}<button className="btn btn-sm" onClick={() => setFormato(fmtIncidente(db, x))}><FileText size={14} /> Formato</button></td>
                       </tr>
                     );
@@ -111,8 +120,8 @@ export default function Incidentes() {
       )}
 
       {nuevo && (
-        <Modal wide title="Reportar evento" onClose={() => setNuevo(null)}
-          footer={<><span className="muted small grow"><Bell size={14} /> Se avisará al líder HSE y a la unidad.</span><button className="btn" onClick={() => setNuevo(null)}>Cancelar</button><button className="btn btn-danger" disabled={!nuevo.descripcion.trim()} onClick={guardar}>Enviar y generar reporte</button></>}>
+        <Modal wide title="Reportar evento" onClose={() => { setNuevo(null); setArchivos([]); }}
+          footer={<><span className="muted small grow"><Bell size={14} /> Se avisará al líder HSE y a la unidad.</span><button className="btn" onClick={() => { setNuevo(null); setArchivos([]); }}>Cancelar</button><button className="btn btn-danger" disabled={!nuevo.descripcion.trim() || guardando} onClick={guardar}>{guardando ? 'Enviando…' : 'Enviar y generar reporte'}</button></>}>
           <div className="form-3">
             <Field label="Clasificación del evento"><select value={nuevo.clase} onChange={(e) => setNuevo({ ...nuevo, clase: e.target.value })}>{CLASES_EVENTO.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Field>
             <Field label="Sede"><select value={nuevo.unidad} onChange={(e) => setNuevo({ ...nuevo, unidad: e.target.value, paradaId: '' })}>{visibleUnits.map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}</select></Field>
@@ -139,6 +148,7 @@ export default function Incidentes() {
               </div>
             </>
           )}
+          <SelectorAdjuntos seccion="incidentes" nuevos={archivos} setNuevos={setArchivos} etiqueta="Fotos, videos o documentos del evento" />
           <p className="muted small">{claseDe(nuevo.clase).registrable ? 'Evento registrable: suma al TRIR.' : 'Evento no registrable: no suma al TRIR.'} {['LTI', 'FAT'].includes(nuevo.clase) ? 'Además suma al IF y reinicia el contador de días sin LTI.' : ''}</p>
         </Modal>
       )}
@@ -149,6 +159,7 @@ export default function Incidentes() {
           <Field label="Acción correctiva (crea un plan de acción)"><input value={inv.accion} onChange={(e) => setInv({ ...inv, accion: e.target.value })} /></Field>
         </Modal>
       )}
+      {evid && <EvidenciasModal seccion="incidentes" coleccion="incidentes" registro={evid} titulo={`Archivos del evento ${evid.id}`} onClose={() => setEvid(null)} />}
       {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
     </>
   );

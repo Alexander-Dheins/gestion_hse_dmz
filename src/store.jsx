@@ -11,7 +11,7 @@ function load() {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.version === 3) return parsed;
+      if (parsed && parsed.version === 3) { parsed.vinculos = parsed.vinculos || {}; return parsed; }
     }
   } catch { /* sin almacenamiento */ }
   return buildSeed();

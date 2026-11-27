@@ -193,3 +193,45 @@ td.pg-c { border: 2px solid #fff; }
 .pg-table td:first-child strong { font-size: 13px; }
 
 @media (min-width:1280px){.stats-ind{grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}.stats-ind .stat-label{min-height:2.6em}}
+
+/* ---------- Adjuntos y vínculo con el repositorio ---------- */
+.adj { margin: 10px 0 4px; }
+.adj-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+.adj-head .lbl-up { display: inline-flex; gap: 5px; align-items: center; }
+.adj-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 4px; }
+.adj-tile { position: relative; width: 112px; display: flex; flex-direction: column; gap: 3px; }
+.adj-thumb { width: 112px; height: 84px; border: 1px solid var(--line); border-radius: 8px; background: #f6f8fb; display: grid; place-items: center; overflow: hidden; cursor: pointer; padding: 0; position: relative; color: #5b6b80; }
+.adj-thumb:hover { border-color: #9fb6d4; }
+.adj-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.adj-tile.lock .adj-thumb { cursor: not-allowed; color: #9aa7b8; }
+.adj-ext { position: absolute; bottom: 5px; right: 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #5b6b80; }
+.adj-name { font-size: 12px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adj-meta { font-size: 11px; color: var(--muted, #6b7785); }
+.adj-x { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line); background: #fff; display: grid; place-items: center; cursor: pointer; }
+.adj-add { width: 112px; height: 84px; border: 1.5px dashed #b8c6d8; border-radius: 8px; background: #fff; color: #2c5a8f; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; font-size: 12px; }
+.adj-add:hover { background: #f1f6fc; }
+.adj-aviso { display: flex; gap: 8px; align-items: flex-start; background: #fff8e8; border: 1px solid #f1dca8; color: #6b5310; border-radius: 8px; padding: 9px 11px; font-size: 13px; margin: 4px 0; }
+.adj-aviso svg { flex: none; margin-top: 2px; }
+.adj-aviso a { font-weight: 600; }
+.adj-btn { display: inline-flex; align-items: center; gap: 3px; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 9px; font-size: 12px; color: #5b6b80; cursor: pointer; white-space: nowrap; }
+.adj-btn.con { color: #1d5fa8; border-color: #b9d0ea; background: #f1f6fc; font-weight: 600; }
+.sep { border: none; border-top: 1px solid var(--line); margin: 14px 0 6px; }
+.visor { background: #0f1720; border-radius: 8px; min-height: 260px; display: grid; place-items: center; overflow: hidden; }
+.visor img { max-width: 100%; max-height: 68vh; display: block; }
+.visor iframe { width: 100%; height: 68vh; border: 0; background: #fff; }
+.visor video { max-width: 100%; max-height: 68vh; }
+.visor-vacio { color: #c9d3df; text-align: center; padding: 30px; max-width: 360px; }
+.vinc-strip { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
+.vinc-strip .lbl-up { display: inline-flex; gap: 5px; align-items: center; margin: 0; }
+.vinc { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; padding: 4px 10px; border-radius: 999px; background: #fff4e5; }
+.vinc.on { background: #eaf5ee; }
+.vinc .link { background: none; border: none; padding: 0; color: #1d5fa8; cursor: pointer; font: inherit; }
+.vinc-tag { display: inline-flex; gap: 4px; align-items: center; font-size: 11px; font-weight: 600; color: #1d6b3a; background: #eaf5ee; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.ic-link { color: #1d6b3a; }
+.vinc-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 16px; background: #eef7f1; border-bottom: 1px solid var(--line); font-size: 13px; color: #24543a; }
+.vinc-note svg { flex: none; margin-top: 2px; }
+.vinc-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+.vinc-opt > span { display: flex; flex-direction: column; gap: 2px; }
+.file-open { background: none; border: none; text-align: left; padding: 0; cursor: pointer; display: flex; flex-direction: column; min-width: 0; font: inherit; color: inherit; }
+.file-open strong:hover { color: #1d5fa8; }
+.hz-st{min-width:118px}

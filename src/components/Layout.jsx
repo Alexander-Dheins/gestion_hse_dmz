@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Wrench, FileSignature, Grid3x3, ClipboardCheck, AlertTriangle, ListChecks,
-  Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack, LayoutGrid,
+  Users, GraduationCap, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack, LayoutGrid,
   FileWarning, BarChart3, FileBarChart, Network,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -29,7 +29,6 @@ export const NAV = [
   { grupo: 'Personas', items: [
     { to: '/personal', label: 'Personal y acreditación', icon: Users, roles: ALL },
     { to: '/capacitaciones', label: 'Capacitaciones', icon: GraduationCap, roles: STAFF },
-    { to: '/epp', label: 'EPP', icon: HardHat, roles: STAFF },
   ] },
   { grupo: 'Salud y ambiente', items: [
     { to: '/salud', label: 'Salud ocupacional', icon: HeartPulse, roles: ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'medico'] },

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Download, Upload, Repeat, AlertTriangle, Paperclip } from 'lucide-react';
+import { Plus, Search, Download, Upload, Repeat, AlertTriangle } from 'lucide-react';
 import { useStore, can, fmtFecha, nombreUnidad } from '../../store.jsx';
 import { Badge, Card, Modal, Field, Empty, Progress, Stat } from '../../components/ui.jsx';
 import { ACTOS, CONDICIONES } from '../../data/catalogos.js';
 import { RIESGOS, TIPOS_INSPECCION, MESES, ANIO } from '../../data/seed3.js';
 import { estadoHallazgo, diasRetraso, rangoAntiguedad, recurrencias, kpisHallazgos, TONO_HZ, ESTADOS_HZ, hoyIso, mesDe } from '../../lib/sgsst.js';
 import ImportarHallazgos from './ImportarHallazgos.jsx';
+import { SelectorAdjuntos, ListaAdjuntos, EvidenciasModal, BotonAdjuntos, subirAdjuntos, registrarAdjuntos } from '../../components/Adjuntos.jsx';
 
 const TONO_RIESGO = { Alto: 'bad', Medio: 'warn', Bajo: 'muted' };
 const plazoSugerido = (fecha, riesgo) => {
@@ -25,6 +26,10 @@ export default function Hallazgos() {
   const [nuevo, setNuevo] = useState(null);
   const [edit, setEdit] = useState(null);
   const [importar, setImportar] = useState(false);
+  const [archivosNuevo, setArchivosNuevo] = useState([]);
+  const [archivosEdit, setArchivosEdit] = useState([]);
+  const [evid, setEvid] = useState(null);
+  const [guardando, setGuardando] = useState(false);
   const hoy = hoyIso();
 
   const base = useMemo(() => db.hallazgos.filter((h) => inScope(h.sede)), [db.hallazgos, inScope]);
@@ -48,20 +53,30 @@ export default function Hallazgos() {
     const s = visibleUnits.find((u) => u.startsWith('T')) || visibleUnits[0];
     setNuevo({ fecha: hoy, sede: s, area: '', tipoInspeccion: user.rol === 'trabajador' ? 'Inopinada' : 'Planeada', inspector: user.nombre, clasificacion: 'Condición', subtipo: CONDICIONES[0], descripcion: '', riesgo: 'Medio', accion: '', responsable: '', plazo: plazoSugerido(hoy, 'Medio') });
   };
-  const guardar = () => {
+  const guardar = async () => {
     const n = db.hallazgos.filter((h) => h.id.startsWith(`HZ-${ANIO}`)).length + 1;
     const rec = { ...nuevo, id: `HZ-${ANIO}-${String(n).padStart(3, '0')}`, avance: 0, fechaCierre: null, evidencia: null };
-    update((d) => { d.hallazgos.push(rec); }, `Hallazgo ${rec.id} registrado${nuevo.riesgo === 'Alto' ? ' · alerta de riesgo alto enviada al líder HSE' : ''}`);
+    setGuardando(true);
+    const items = await subirAdjuntos(archivosNuevo, user);
+    update((d) => { d.hallazgos.push({ ...rec, adjuntos: registrarAdjuntos(d, 'hallazgos', rec.id, items) }); }, `Hallazgo ${rec.id} registrado${items.length ? ` con ${items.length} archivo(s)` : ''}${nuevo.riesgo === 'Alto' ? ' · alerta de riesgo alto enviada al líder HSE' : ''}`);
+    setGuardando(false);
+    setArchivosNuevo([]);
     setNuevo(null);
   };
   const okNuevo = nuevo && nuevo.descripcion.trim().length > 5 && nuevo.fecha <= hoy && nuevo.plazo >= nuevo.fecha && (user.rol === 'trabajador' || nuevo.responsable.trim());
 
-  const guardarAvance = () => {
-    if (edit.avance >= 100 && !edit.evidencia) { notify('Para cerrar el hallazgo adjunta la evidencia'); return; }
+  const guardarAvance = async () => {
+    const tieneEvidencia = edit.adjuntos?.length || edit.evidencia || archivosEdit.length;
+    if (edit.avance >= 100 && !tieneEvidencia) { notify('Para cerrar el hallazgo adjunta la evidencia'); return; }
+    setGuardando(true);
+    const items = await subirAdjuntos(archivosEdit, user);
     update((d) => {
       const h = d.hallazgos.find((x) => x.id === edit.id);
-      Object.assign(h, { accion: edit.accion, responsable: edit.responsable, plazo: edit.plazo, avance: Number(edit.avance), evidencia: edit.evidencia || h.evidencia, fechaCierre: Number(edit.avance) >= 100 ? (h.fechaCierre || hoy) : null });
+      Object.assign(h, { accion: edit.accion, responsable: edit.responsable, plazo: edit.plazo, avance: Number(edit.avance), fechaCierre: Number(edit.avance) >= 100 ? (h.fechaCierre || hoy) : null });
+      h.adjuntos = [...(h.adjuntos || []), ...registrarAdjuntos(d, 'hallazgos', h.id, items)];
     }, Number(edit.avance) >= 100 ? `Hallazgo ${edit.id} cerrado` : `Avance de ${edit.id} actualizado`);
+    setGuardando(false);
+    setArchivosEdit([]);
     setEdit(null);
   };
 
@@ -116,11 +131,11 @@ export default function Hallazgos() {
                     <td>{nombreUnidad(db, h.sede)}<div className="muted small">{h.area}</div></td>
                     <td>{h.descripcion}<div className="hz-tags"><span className={`hz-clas ${h.clasificacion === 'Acto' ? 'acto' : ''}`}>{h.clasificacion}</span><span className="muted small">{h.subtipo}</span>{esRec(h) && <span className="hz-rec" title="Mismo tipo de hallazgo 3 o más veces en esta sede"><Repeat size={11} /> Recurrente</span>}</div></td>
                     <td><Badge tone={TONO_RIESGO[h.riesgo]}>{h.riesgo}</Badge></td>
-                    <td>{h.accion ? h.accion : <span className="cell-err"><AlertTriangle size={12} /> Sin plan de acción</span>}<div className="muted small">{h.responsable}{h.evidencia && <> · <Paperclip size={11} /> {h.evidencia}</>}</div></td>
+                    <td>{h.accion ? h.accion : <span className="cell-err"><AlertTriangle size={12} /> Sin plan de acción</span>}<div className="muted small">{h.responsable}</div></td>
                     <td className="nowrap">{fmtFecha(h.plazo)}{ret > 0 && <div className="cell-err">{ret} días de retraso</div>}</td>
                     <td><Progress value={h.avance} /><span className="small muted">{h.avance}%</span></td>
                     <td className="hz-st"><Badge tone={TONO_HZ[e]}>{e}</Badge><div className="muted small">{rangoAntiguedad(h, hoy)}</div></td>
-                    <td>{e !== 'Cerrado' && (editor || h.responsable === user.nombre) && <button className="btn btn-sm" onClick={() => setEdit({ ...h })}>Actualizar</button>}</td>
+                    <td className="actions-cell"><BotonAdjuntos registro={h} onClick={() => setEvid(h)} />{e !== 'Cerrado' && (editor || h.responsable === user.nombre) && <button className="btn btn-sm" onClick={() => { setArchivosEdit([]); setEdit({ ...h }); }}>Actualizar</button>}</td>
                   </tr>
                 );
               })}
@@ -132,8 +147,8 @@ export default function Hallazgos() {
       </Card>
 
       {nuevo && (
-        <Modal wide title={user.rol === 'trabajador' ? 'Reportar acto o condición subestándar' : 'Nuevo hallazgo de inspección'} onClose={() => setNuevo(null)}
-          footer={<><button className="btn" onClick={() => setNuevo(null)}>Cancelar</button><button className="btn btn-primary" disabled={!okNuevo} onClick={guardar}>Registrar</button></>}>
+        <Modal wide title={user.rol === 'trabajador' ? 'Reportar acto o condición subestándar' : 'Nuevo hallazgo de inspección'} onClose={() => { setNuevo(null); setArchivosNuevo([]); }}
+          footer={<><button className="btn" onClick={() => { setNuevo(null); setArchivosNuevo([]); }}>Cancelar</button><button className="btn btn-primary" disabled={!okNuevo || guardando} onClick={guardar}>{guardando ? 'Guardando…' : 'Registrar'}</button></>}>
           <div className="form-3">
             <Field label="Fecha"><input type="date" value={nuevo.fecha} max={hoy} onChange={(e) => setNuevo({ ...nuevo, fecha: e.target.value, plazo: plazoSugerido(e.target.value, nuevo.riesgo) })} /></Field>
             <Field label="Sede"><select value={nuevo.sede} onChange={(e) => setNuevo({ ...nuevo, sede: e.target.value })}>{visibleUnits.map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}</select></Field>
@@ -157,13 +172,14 @@ export default function Hallazgos() {
               </div>
             </>
           )}
+          <SelectorAdjuntos seccion="hallazgos" nuevos={archivosNuevo} setNuevos={setArchivosNuevo} etiqueta="Fotos o documentos del hallazgo" />
           {nuevo.riesgo === 'Alto' && <p className="note"><AlertTriangle size={15} /> Riesgo alto: plazo de 3 días y aviso inmediato al líder HSE.</p>}
         </Modal>
       )}
 
       {edit && (
         <Modal title={`Actualizar ${edit.id}`} onClose={() => setEdit(null)}
-          footer={<><button className="btn" onClick={() => setEdit(null)}>Cancelar</button><button className="btn btn-primary" onClick={guardarAvance}>{Number(edit.avance) >= 100 ? 'Cerrar hallazgo' : 'Guardar avance'}</button></>}>
+          footer={<><button className="btn" onClick={() => setEdit(null)}>Cancelar</button><button className="btn btn-primary" disabled={guardando} onClick={guardarAvance}>{Number(edit.avance) >= 100 ? 'Cerrar hallazgo' : 'Guardar avance'}</button></>}>
           <p className="muted" style={{ marginTop: 0 }}>{edit.descripcion}</p>
           <Field label="Plan de acción"><textarea rows={2} value={edit.accion} onChange={(e) => setEdit({ ...edit, accion: e.target.value })} disabled={!editor} /></Field>
           <div className="form-2">
@@ -173,10 +189,12 @@ export default function Hallazgos() {
           <Field label={`Avance: ${edit.avance}%`}>
             <div className="seg">{[0, 25, 50, 75, 100].map((v) => <button key={v} className={Number(edit.avance) === v ? 'on' : ''} onClick={() => setEdit({ ...edit, avance: v })}>{v === 100 ? 'Cerrado' : `${v}%`}</button>)}</div>
           </Field>
-          <Field label="Evidencia (foto o documento)"><input type="file" onChange={(e) => setEdit({ ...edit, evidencia: e.target.files?.[0]?.name || '' })} /></Field>
-          <p className="muted small">En la demo solo se registra el nombre del archivo.</p>
+          <span className="lbl-up">Evidencias registradas</span>
+          <ListaAdjuntos ids={edit.adjuntos} legado={edit.evidencia} vacio="Aún no hay evidencias." />
+          <SelectorAdjuntos seccion="hallazgos" nuevos={archivosEdit} setNuevos={setArchivosEdit} etiqueta="Agregar evidencia (foto o documento)" />
         </Modal>
       )}
+      {evid && <EvidenciasModal seccion="hallazgos" coleccion="hallazgos" registro={evid} titulo={`Evidencias · ${evid.id}`} onClose={() => setEvid(null)} />}
       {importar && <ImportarHallazgos onClose={() => setImportar(false)} />}
     </>
   );

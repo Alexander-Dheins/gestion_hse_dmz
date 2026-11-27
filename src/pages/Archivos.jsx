@@ -1,13 +1,16 @@
 import { useMemo, useRef, useState } from 'react';
 import {
   Folder, FolderOpen, FileText, FileSpreadsheet, FileImage, File, Presentation, Upload, FolderPlus, Shield, Download, Trash2,
-  ChevronRight, ChevronDown, Pencil, History, Search, Lock, Building2,
+  ChevronRight, ChevronDown, Pencil, History, Search, Lock, Building2, Link2, Eye,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { guardarBlob, leerBlob, borrarBlob, olvidarUrl } from '../lib/blobs.js';
+import { SECCIONES, seccionesDeCarpeta, carpetaDeSeccion, rutaTexto } from '../lib/adjuntos.js';
+import { VisorArchivo } from '../components/Adjuntos.jsx';
 import { useStore, nivelCarpeta, rank, rutaCarpeta, nombreUsuario, nombreUnidad, fmtFecha, NIVELES } from '../store.jsx';
 import { Badge, Card, PageHeader, Modal, Field, Empty } from '../components/ui.jsx';
 import { ROLES } from '../data/seed.js';
 
-const blobs = new Map(); // archivos subidos en esta sesión (solo memoria)
 
 const icono = (nombre) => {
   const ext = nombre.split('.').pop().toLowerCase();
@@ -29,6 +32,8 @@ export default function Archivos() {
   const [nuevaCarpeta, setNuevaCarpeta] = useState(null);
   const [renombrar, setRenombrar] = useState(null);
   const [permisos, setPermisos] = useState(null);
+  const [asociar, setAsociar] = useState(false);
+  const [ver, setVer] = useState(null);
   const fileInput = useRef(null);
 
   const nivel = useMemo(() => {
@@ -56,28 +61,33 @@ export default function Archivos() {
   };
   const toggle = (id) => setAbiertas((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const subir = (files) => {
+  const subir = async (files) => {
     if (!files?.length) return;
+    const lista = [...files].map((f) => {
+      const existente = db.archivos.find((a) => a.folderId === actual && a.nombre === f.name);
+      return { f, id: existente ? existente.id : 'A' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), existente: !!existente };
+    });
+    for (const x of lista) { await guardarBlob(x.id, x.f); olvidarUrl(x.id); }
     update((d) => {
-      [...files].forEach((f) => {
-        const id = 'A' + (Date.now() + Math.floor(Math.random() * 1000));
-        blobs.set(id, f);
-        const existente = d.archivos.find((a) => a.folderId === actual && a.nombre === f.name);
-        if (existente) { existente.version += 1; existente.actualizado = new Date().toISOString().slice(0, 10); existente.autor = user.id; existente.kb = Math.max(1, Math.round(f.size / 1024)); blobs.set(existente.id, f); }
-        else d.archivos.push({ id, folderId: actual, nombre: f.name, kb: Math.max(1, Math.round(f.size / 1024)), autor: user.id, actualizado: new Date().toISOString().slice(0, 10), version: 1 });
+      lista.forEach(({ f, id, existente }) => {
+        const kb = Math.max(1, Math.round(f.size / 1024));
+        const fecha = new Date().toISOString().slice(0, 10);
+        if (existente) { const e = d.archivos.find((a) => a.id === id); e.version += 1; e.actualizado = fecha; e.autor = user.id; e.kb = kb; }
+        else d.archivos.push({ id, folderId: actual, nombre: f.name, kb, tipo: f.type || '', autor: user.id, actualizado: fecha, version: 1 });
       });
     }, `${files.length} archivo(s) subido(s) a "${carpeta.nombre}"`);
   };
-  const descargar = (a) => {
-    const blob = blobs.get(a.id) || new Blob([`Archivo de demostración: ${a.nombre}\nCarpeta: ${ruta.map((c) => c.nombre).join(' / ')}\nVersión ${a.version} · ${fmtFecha(a.actualizado)}\n\nEn el sistema real aquí se descarga el documento original.`], { type: 'text/plain' });
+  const descargar = async (a) => {
+    const guardado = await leerBlob(a.id);
+    const blob = guardado || new Blob([`Archivo de demostración: ${a.nombre}\nCarpeta: ${ruta.map((c) => c.nombre).join(' / ')}\nVersión ${a.version} · ${fmtFecha(a.actualizado)}\n\nEn el sistema real aquí se descarga el documento original.`], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url; link.download = blobs.has(a.id) ? a.nombre : a.nombre + '.txt';
+    link.href = url; link.download = guardado ? a.nombre : a.nombre + '.txt';
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const nuevaVersion = (a) => update((d) => { const x = d.archivos.find((y) => y.id === a.id); x.version += 1; x.actualizado = new Date().toISOString().slice(0, 10); x.autor = user.id; }, `Nueva versión de ${a.nombre}`);
-  const eliminar = (a) => update((d) => { d.archivos = d.archivos.filter((x) => x.id !== a.id); }, `${a.nombre} eliminado`);
+  const eliminar = (a) => { borrarBlob(a.id); olvidarUrl(a.id); update((d) => { d.archivos = d.archivos.filter((x) => x.id !== a.id); }, `${a.nombre} eliminado`); };
 
   const crearCarpeta = () => {
     const nombre = nuevaCarpeta.trim();
@@ -95,7 +105,7 @@ export default function Archivos() {
     const tieneContenido = db.carpetas.some((c) => c.parentId === actual) || archivos.length;
     if (tieneContenido) { notify('Solo se pueden eliminar carpetas vacías'); return; }
     const padre = carpeta.parentId;
-    update((d) => { d.carpetas = d.carpetas.filter((c) => c.id !== actual); }, 'Carpeta eliminada');
+    update((d) => { d.carpetas = d.carpetas.filter((c) => c.id !== actual); Object.keys(d.vinculos || {}).forEach((k) => { if (d.vinculos[k] === actual) delete d.vinculos[k]; }); }, 'Carpeta eliminada');
     setActual(padre);
   };
 
@@ -112,6 +122,7 @@ export default function Archivos() {
             {actual === c.id ? <FolderOpen size={16} /> : <Folder size={16} />}
             <span>{c.nombre}</span>
             {c.unidad && <Building2 size={12} className="muted" />}
+            {seccionesDeCarpeta(db, c.id).length > 0 && <Link2 size={12} className="ic-link" />}
           </button>
         </div>
         {open && hs.length > 0 && <ul>{hs.map((h) => <Nodo key={h.id} c={h} depth={depth + 1} />)}</ul>}
@@ -122,6 +133,20 @@ export default function Archivos() {
   return (
     <>
       <PageHeader title="Repositorio de archivos" subtitle="Directorio compartido tipo servidor: carpetas y subcarpetas en el orden del área, con permisos por rol, unidad o persona." />
+      {nivel.root === 'admin' && (
+        <div className="vinc-strip">
+          <span className="lbl-up"><Link2 size={13} /> Carpetas asociadas a secciones del sistema</span>
+          {Object.entries(SECCIONES).map(([k, sct]) => {
+            const f = carpetaDeSeccion(db, k);
+            return (
+              <span key={k} className={`vinc ${f ? 'on' : ''}`}>
+                <strong>{sct.corto}</strong>
+                {f ? <button className="link" onClick={() => ir(f)}>{rutaTexto(db, f).replace(/^Repositorio SSOMA \/ /, '')}</button> : <span className="muted">Sin asociar · no se pueden subir archivos</span>}
+              </span>
+            );
+          })}
+        </div>
+      )}
       <div className="files">
         <aside className="files-tree">
           <ul className="tree">{visible('root') && <Nodo c={db.carpetas.find((c) => c.id === 'root')} depth={0} />}</ul>
@@ -151,10 +176,14 @@ export default function Archivos() {
               </>
             )}
             {miNivel === 'admin' && actual !== 'root' && <button className="btn btn-sm" onClick={() => setRenombrar(carpeta.nombre)}><Pencil size={15} /> Renombrar</button>}
+            {miNivel === 'admin' && actual !== 'root' && <button className="btn btn-sm" onClick={() => setAsociar(true)}><Link2 size={15} /> Asociar a sección</button>}
             {miNivel === 'admin' && <button className="btn btn-sm" onClick={() => setPermisos({ acl: { ...(carpeta.acl || {}) }, usuarios: { ...(carpeta.usuarios || {}) }, nuevoUser: '', nuevoNivel: 'ver' })}><Shield size={15} /> Permisos</button>}
             {miNivel === 'admin' && actual !== 'root' && <button className="icon-btn" title="Eliminar carpeta vacía" onClick={eliminarCarpeta}><Trash2 size={15} /></button>}
           </div>
 
+          {seccionesDeCarpeta(db, actual).length > 0 && (
+            <p className="vinc-note"><Link2 size={14} /><span>Aquí se guardan los archivos que se suben desde {seccionesDeCarpeta(db, actual).map((k) => <Link key={k} to={SECCIONES[k].ruta}>{SECCIONES[k].corto}</Link>).reduce((a, b) => [a, ' y ', b])}. Cada registro crea su propia subcarpeta. Quien tenga permiso de «subir» en esta carpeta podrá adjuntar archivos desde esa sección.</span></p>
+          )}
           <div
             className={`files-list ${rank(miNivel) >= rank('subir') ? 'droppable' : ''}`}
             onDragOver={(e) => { if (rank(miNivel) >= rank('subir')) e.preventDefault(); }}
@@ -178,16 +207,18 @@ export default function Archivos() {
                   <button key={c.id} className="file-row folder" onClick={() => ir(c.id)}>
                     <Folder size={18} className="ic-folder" />
                     <div className="grow"><strong>{c.nombre}</strong><span className="muted small">{db.carpetas.filter((x) => x.parentId === c.id && visible(x.id)).length} carpetas · {db.archivos.filter((x) => x.folderId === c.id).length} archivos</span></div>
+                    {seccionesDeCarpeta(db, c.id).map((k) => <span key={k} className="vinc-tag"><Link2 size={11} /> {SECCIONES[k].corto}</span>)}
                     <Badge>{nivel[c.id]}</Badge>
                   </button>
                 ))}
                 {archivos.map((a) => (
                   <div key={a.id} className="file-row">
                     {icono(a.nombre)}
-                    <div className="grow">
+                    <button className="grow file-open" onClick={() => setVer(a)}>
                       <strong>{a.nombre}</strong>
-                      <span className="muted small">v{a.version} · {tam(a.kb)} · {nombreUsuario(db, a.autor)} · {fmtFecha(a.actualizado)}</span>
-                    </div>
+                      <span className="muted small">v{a.version} · {tam(a.kb)} · {nombreUsuario(db, a.autor)} · {fmtFecha(a.actualizado)}{a.origen ? ` · desde ${SECCIONES[a.origen.seccion]?.corto || a.origen.seccion} (${a.origen.ref})` : ''}</span>
+                    </button>
+                    <button className="icon-btn" title="Vista previa" onClick={() => setVer(a)}><Eye size={16} /></button>
                     <button className="icon-btn" title="Descargar" onClick={() => descargar(a)}><Download size={16} /></button>
                     {rank(miNivel) >= rank('editar') && <button className="icon-btn" title="Registrar nueva versión" onClick={() => nuevaVersion(a)}><History size={16} /></button>}
                     {rank(miNivel) >= rank('editar') && <button className="icon-btn" title="Eliminar" onClick={() => eliminar(a)}><Trash2 size={16} /></button>}
@@ -213,6 +244,8 @@ export default function Archivos() {
           <Field label="Nombre"><input autoFocus value={renombrar} onChange={(e) => setRenombrar(e.target.value)} /></Field>
         </Modal>
       )}
+      {ver && <VisorArchivo archivo={ver} onClose={() => setVer(null)} />}
+      {asociar && <AsociarSeccion carpeta={carpeta} onClose={() => setAsociar(false)} />}
       {permisos && <PermisosCarpeta carpeta={carpeta} estado={permisos} setEstado={setPermisos} onClose={() => setPermisos(null)} />}
     </>
   );
@@ -302,6 +335,39 @@ function PermisosCarpeta({ carpeta, estado, setEstado, onClose }) {
           <p className="muted small">Las subcarpetas heredan estos permisos salvo que tengan los suyos.</p>
         </div>
       </div>
+    </Modal>
+  );
+}
+
+function AsociarSeccion({ carpeta, onClose }) {
+  const { db, update } = useStore();
+  const [sel, setSel] = useState(() => Object.fromEntries(Object.keys(SECCIONES).map((k) => [k, db.vinculos?.[k] === carpeta.id])));
+  const guardar = () => {
+    update((d) => {
+      d.vinculos = d.vinculos || {};
+      Object.keys(SECCIONES).forEach((k) => {
+        if (sel[k]) d.vinculos[k] = carpeta.id;
+        else if (d.vinculos[k] === carpeta.id) delete d.vinculos[k];
+      });
+    }, `Asociaciones de "${carpeta.nombre}" actualizadas`);
+    onClose();
+  };
+  return (
+    <Modal title={`Asociar «${carpeta.nombre}» a una sección`} onClose={onClose}
+      footer={<><button className="btn" onClick={onClose}>Cancelar</button><button className="btn btn-primary" onClick={guardar}>Guardar</button></>}>
+      <p className="muted small" style={{ marginTop: 0 }}>Los archivos que se adjunten en la sección se guardarán en esta carpeta, cada registro en su propia subcarpeta. Si una sección no tiene carpeta asociada, nadie puede subir archivos desde ella. Quién puede subir o ver lo decides con los permisos de la carpeta.</p>
+      {Object.entries(SECCIONES).map(([k, sct]) => {
+        const otra = carpetaDeSeccion(db, k);
+        return (
+          <label key={k} className="vinc-opt">
+            <input type="checkbox" checked={sel[k]} onChange={(e) => setSel({ ...sel, [k]: e.target.checked })} />
+            <span>
+              <strong>{sct.nombre}</strong>
+              <span className="muted small">{otra && otra !== carpeta.id ? `Hoy se guarda en «${rutaTexto(db, otra)}»; al marcarla pasará a esta carpeta (lo ya subido se queda donde está).` : otra === carpeta.id ? 'Asociada a esta carpeta.' : 'Sin carpeta asociada.'}</span>
+            </span>
+          </label>
+        );
+      })}
     </Modal>
   );
 }

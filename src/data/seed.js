@@ -371,6 +371,8 @@ export function buildSeed() {
     epp: buildEpp(),
     carpetas: buildCarpetas(),
     archivos: buildArchivos(),
+    // carpeta del repositorio asociada a cada sección (la define el administrador)
+    vinculos: {},
     // Horas hombre del año por unidad (para IF / IS / IA)
     hh: { UM1: 412000, UM2: 356000, UM3: 128000, UM4: 154000, UM5: 64000, UM6: 82000, UM7: 97000 },
     ipercContinuo: buildIpercContinuo(),
