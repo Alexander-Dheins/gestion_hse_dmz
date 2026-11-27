@@ -22,6 +22,10 @@ import Salud from './pages/Salud.jsx';
 import Ambiente from './pages/Ambiente.jsx';
 import Gestion from './pages/Gestion.jsx';
 import Formatos from './pages/Formatos.jsx';
+import NoConformidades from './pages/NoConformidades.jsx';
+import Estadisticas from './pages/Estadisticas.jsx';
+import ReporteMensual from './pages/ReporteMensual.jsx';
+import Sgsst from './pages/Sgsst.jsx';
 
 export default function App() {
   const { user } = useStore();
@@ -49,6 +53,10 @@ export default function App() {
         <Route path="ambiente" element={<Ambiente />} />
         <Route path="gestion" element={<Gestion />} />
         <Route path="formatos" element={<Formatos />} />
+        <Route path="no-conformidades" element={<NoConformidades />} />
+        <Route path="estadisticas" element={<Estadisticas />} />
+        <Route path="reporte-mensual" element={<ReporteMensual />} />
+        <Route path="sgsst" element={<Sgsst />} />
         <Route path="fase/salud" element={<Navigate to="/salud" replace />} />
         <Route path="fase/ambiente" element={<Navigate to="/ambiente" replace />} />
         <Route path="fase/gestion" element={<Navigate to="/gestion" replace />} />

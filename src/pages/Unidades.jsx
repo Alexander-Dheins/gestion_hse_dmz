@@ -6,14 +6,16 @@ import { Card, PageHeader, Modal, Field, Badge } from '../components/ui.jsx';
 export default function Unidades() {
   const { db, user, scopeUnits, update } = useStore();
   const [nueva, setNueva] = useState(null);
-  const unidades = db.unidades.filter((u) => scopeUnits.includes(u.id));
+  const unidades = db.unidades.filter((u) => scopeUnits.includes(u.id) && u.tipo !== 'taller');
 
   const guardar = () => {
     if (!nueva.nombre.trim()) return;
     update((d) => {
-      const n = d.unidades.length + 1;
+      const n = Math.max(0, ...d.unidades.filter((x) => x.id.startsWith('UM')).map((x) => Number(x.id.slice(2)))) + 1;
       const id = 'UM' + n;
-      d.unidades.push({ id, nombre: nueva.nombre.trim(), titular: nueva.titular || '—', region: nueva.region || '—', planta: nueva.planta || '—', formato: nueva.formato || 'Por definir', contacto: '—', estandares: 0 });
+      d.estadisticas.hht[id] = Array(12).fill(null);
+      d.estadisticas.trabajadores[id] = Array(12).fill(null);
+      d.unidades.push({ id, tipo: 'um', nombre: nueva.nombre.trim(), titular: nueva.titular || '—', region: nueva.region || '—', planta: nueva.planta || '—', formato: nueva.formato || 'Por definir', contacto: '—', estandares: 0 });
       d.hh[id] = 0;
       // Al crear la unidad, se crean sus carpetas estándar en el repositorio
       const base = 'u' + n + 'x';

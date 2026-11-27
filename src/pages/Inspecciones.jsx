@@ -1,132 +1,30 @@
-import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Camera, WifiOff, FileText } from 'lucide-react';
-import { FormatoModal } from '../components/Formato.jsx';
-import { fmtInspeccion } from '../formatos.jsx';
-import { useStore, can, fmtFecha, nombreUnidad, nombreUsuario, nextId, hoy } from '../store.jsx';
-import { Badge, Card, PageHeader, Modal, Field, Empty } from '../components/ui.jsx';
-import { CHECKLIST_BASE } from '../data/seed.js';
+import { useStore } from '../store.jsx';
+import { PageHeader } from '../components/ui.jsx';
+import Hallazgos from './inspecciones/Hallazgos.jsx';
+import KpiHallazgos from './inspecciones/KpiHallazgos.jsx';
+import Programa from './inspecciones/Programa.jsx';
+import Checklists from './inspecciones/Checklists.jsx';
 
-const TIPOS = ['Inspección planeada de área', 'Observación de comportamiento', 'Inspección de aparejos de izaje', 'Inspección de EPP', 'Inspección de herramientas eléctricas', 'Inspección de extintores'];
-
+// Inspecciones (elemento 4.1 del SGSST): hallazgos internos, panel de KPIs, programa anual y checklists de campo
 export default function Inspecciones() {
-  const { db, user, inScope, visibleUnits, update } = useStore();
+  const { user } = useStore();
   const [params, setParams] = useSearchParams();
-  const [nueva, setNueva] = useState(null);
-  const [formato, setFormato] = useState(null);
-  const lista = db.inspecciones.filter((x) => inScope(x.unidad)).sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const responsables = db.usuarios.filter((u) => u.rol !== 'trabajador' && (!u.unidad || visibleUnits.includes(u.unidad)));
-
-  const abrir = () => {
-    const unidad = visibleUnits[0];
-    setNueva({
-      tipo: user.rol === 'trabajador' ? 'Observación de comportamiento' : TIPOS[0], unidad,
-      paradaId: db.paradas.find((p) => p.unidad === unidad && p.estado === 'En curso')?.id || '',
-      items: CHECKLIST_BASE.map((item) => ({ item, r: 'cumple', obs: '', resp: 'u7' })),
-    });
-  };
-  useEffect(() => {
-    if (params.get('nuevo') && can(user, 'inspeccion.crear')) { abrir(); setParams({}, { replace: true }); }
-  }, [params]); // eslint-disable-line
-
-  const setItem = (i, k, v) => setNueva({ ...nueva, items: nueva.items.map((x, j) => (j === i ? { ...x, [k]: v } : x)) });
-
-  const guardar = () => {
-    const evaluados = nueva.items.filter((x) => x.r !== 'na');
-    const ok = evaluados.filter((x) => x.r === 'cumple').length;
-    const hallazgos = nueva.items.filter((x) => x.r === 'no');
-    const cumplimiento = evaluados.length ? Math.round((ok / evaluados.length) * 100) : 100;
-    const id = nextId(db.inspecciones, 'IN');
-    const rec = { id, tipo: nueva.tipo, unidad: nueva.unidad, paradaId: nueva.paradaId || null, fecha: hoy(), inspector: user.id, cumplimiento, hallazgos: hallazgos.length, estado: hallazgos.length ? 'Con hallazgos' : 'Conforme', items: nueva.items.map(({ item, r, obs }) => ({ item, r, obs })) };
-    const planesNuevos = [];
-    hallazgos.forEach((h) => {
-      planesNuevos.push({ id: nextId([...db.planes, ...planesNuevos], 'PA'), origen: id, unidad: nueva.unidad, descripcion: `${h.item}${h.obs ? ': ' + h.obs : ''}`, responsable: h.resp, vence: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), estado: 'Abierto' });
-    });
-    update((d) => {
-      d.inspecciones.push(rec);
-      d.planes.push(...planesNuevos);
-    }, hallazgos.length ? `Inspección registrada · ${hallazgos.length} planes de acción creados` : 'Inspección registrada sin hallazgos');
-    setNueva(null);
-    setFormato(fmtInspeccion({ ...db, planes: [...db.planes, ...planesNuevos] }, rec));
-  };
-
+  const trabajador = user.rol === 'trabajador';
+  const tabs = trabajador
+    ? [['hallazgos', 'Reportes de actos y condiciones'], ['campo', 'Checklists de campo']]
+    : [['hallazgos', 'Hallazgos'], ['kpi', 'Panel de KPIs'], ['programa', 'Programa anual'], ['campo', 'Checklists de campo']];
+  const tab = params.get('nuevo') ? 'campo' : params.get('tab') || 'hallazgos';
   return (
     <>
-      <PageHeader title="Inspecciones y observaciones" subtitle="Checklists por unidad desde el celular, con fotos y funcionamiento sin señal. Cada hallazgo crea un plan de acción."
-        actions={can(user, 'inspeccion.crear') && <button className="btn btn-primary" onClick={abrir}><Plus size={16} /> Nueva inspección</button>} />
-      <Card>
-        {lista.length === 0 && <Empty>Sin inspecciones registradas.</Empty>}
-        <table className="table">
-          <thead><tr><th>N.º</th><th>Tipo</th><th>Unidad / parada</th><th>Fecha</th><th>Inspector</th><th>Cumplimiento</th><th>Estado</th><th /></tr></thead>
-          <tbody>
-            {lista.map((x) => (
-              <tr key={x.id}>
-                <td><strong>{x.id}</strong></td>
-                <td>{x.tipo}</td>
-                <td>{nombreUnidad(db, x.unidad)}<div className="muted small">{x.paradaId || 'Sin parada'}</div></td>
-                <td className="nowrap">{fmtFecha(x.fecha)}</td>
-                <td>{nombreUsuario(db, x.inspector)}</td>
-                <td><span className={`pct-chip ${x.cumplimiento >= 90 ? 'ok' : x.cumplimiento >= 80 ? 'warn' : 'bad'}`}>{x.cumplimiento}%</span></td>
-                <td><Badge>{x.estado}</Badge>{x.hallazgos > 0 && <span className="small muted"> {x.hallazgos} hallazgos</span>}</td>
-                <td><button className="btn btn-sm" onClick={() => setFormato(fmtInspeccion(db, x))}><FileText size={14} /> Formato</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-
-      {nueva && (
-        <Modal wide title="Nueva inspección" onClose={() => setNueva(null)}
-          footer={<><span className="muted small grow"><WifiOff size={14} /> En la app móvil se guarda sin señal y se sincroniza después.</span><button className="btn" onClick={() => setNueva(null)}>Cancelar</button><button className="btn btn-primary" onClick={guardar}><FileText size={15} /> Registrar y generar formato</button></>}>
-          <div className="form-3">
-            <Field label="Tipo">
-              <select value={nueva.tipo} onChange={(e) => setNueva({ ...nueva, tipo: e.target.value })} disabled={user.rol === 'trabajador'}>
-                {TIPOS.map((t) => <option key={t}>{t}</option>)}
-              </select>
-            </Field>
-            <Field label="Unidad">
-              <select value={nueva.unidad} onChange={(e) => setNueva({ ...nueva, unidad: e.target.value, paradaId: '' })}>
-                {visibleUnits.map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}
-              </select>
-            </Field>
-            <Field label="Parada (opcional)">
-              <select value={nueva.paradaId} onChange={(e) => setNueva({ ...nueva, paradaId: e.target.value })}>
-                <option value="">Sin parada</option>
-                {db.paradas.filter((p) => p.unidad === nueva.unidad && p.estado !== 'Cerrada').map((p) => <option key={p.id} value={p.id}>{p.id} · {p.equipo}</option>)}
-              </select>
-            </Field>
-          </div>
-          <table className="table compact checklist-table">
-            <thead><tr><th>Ítem</th><th>Resultado</th><th>Observación / responsable</th></tr></thead>
-            <tbody>
-              {nueva.items.map((x, i) => (
-                <tr key={i} className={x.r === 'no' ? 'row-bad' : ''}>
-                  <td>{x.item}</td>
-                  <td className="nowrap">
-                    <div className="seg">
-                      {[['cumple', 'Cumple'], ['no', 'No cumple'], ['na', 'N/A']].map(([k, l]) => (
-                        <button key={k} className={x.r === k ? `on ${k}` : ''} onClick={() => setItem(i, 'r', k)}>{l}</button>
-                      ))}
-                    </div>
-                  </td>
-                  <td>
-                    {x.r === 'no' && (
-                      <div className="inline-form">
-                        <input placeholder="Describe el hallazgo" value={x.obs} onChange={(e) => setItem(i, 'obs', e.target.value)} />
-                        <select value={x.resp} onChange={(e) => setItem(i, 'resp', e.target.value)}>
-                          {responsables.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-                        </select>
-                        <button className="icon-btn" title="Adjuntar foto (demo)"><Camera size={16} /></button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Modal>
-      )}
-      {formato && <FormatoModal doc={formato} onClose={() => setFormato(null)} />}
+      <PageHeader title="Inspecciones" subtitle="Inspecciones internas de talleres y unidades: hallazgos con su plan de acción, indicadores de cierre y cumplimiento del programa anual." />
+      <div className="tabs tabs-main">
+        {tabs.map(([k, l]) => <button key={k} className={tab === k ? 'active' : ''} onClick={() => setParams(k === 'hallazgos' ? {} : { tab: k })}>{l}</button>)}
+      </div>
+      {tab === 'hallazgos' && <Hallazgos />}
+      {tab === 'kpi' && !trabajador && <KpiHallazgos />}
+      {tab === 'programa' && !trabajador && <Programa />}
+      {tab === 'campo' && <Checklists />}
     </>
   );
 }

@@ -6,7 +6,7 @@ import { TIPOS_PERMISO, UNIDADES } from '../data/seed.js';
 
 export default function Reportes() {
   const { db, user, visibleUnits, update } = useStore();
-  const [unidad, setUnidad] = useState(visibleUnits[0]);
+  const [unidad, setUnidad] = useState(visibleUnits.find((x) => !x.startsWith('T')) || visibleUnits[0]);
   const [fecha, setFecha] = useState(hoy());
   const [obs, setObs] = useState('Sin observaciones adicionales. Se reforzó la charla de 5 minutos sobre línea de fuego.');
   if (!can(user, 'reporte.ver')) return <Locked />;
@@ -38,7 +38,7 @@ export default function Reportes() {
           <button className="btn btn-primary" onClick={guardar}><Save size={16} /> Guardar en repositorio</button>
         </>} />
       <div className="form-3 no-print">
-        <Field label="Unidad"><select value={unidad} onChange={(e) => setUnidad(e.target.value)}>{visibleUnits.map((x) => <option key={x} value={x}>{nombreUnidad(db, x)}</option>)}</select></Field>
+        <Field label="Unidad"><select value={unidad} onChange={(e) => setUnidad(e.target.value)}>{visibleUnits.filter((x) => !x.startsWith('T')).map((x) => <option key={x} value={x}>{nombreUnidad(db, x)}</option>)}</select></Field>
         <Field label="Fecha"><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></Field>
         <Field label="Formato de la unidad"><input value={u.formato} readOnly /></Field>
       </div>

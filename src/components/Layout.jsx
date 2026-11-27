@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, Wrench, FileSignature, Grid3x3, ClipboardCheck, AlertTriangle, ListChecks,
   Users, GraduationCap, HardHat, FolderTree, FileText, ShieldCheck, HeartPulse, Leaf, Award, LogOut, RotateCcw, Menu, FileStack, LayoutGrid,
+  FileWarning, BarChart3, FileBarChart, Network,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '../store.jsx';
@@ -21,8 +22,9 @@ export const NAV = [
     { to: '/permisos', label: 'Permisos de alto riesgo', icon: FileSignature, roles: ALL },
     { to: '/iperc', label: 'IPERC', icon: Grid3x3, roles: ALL },
     { to: '/inspecciones', label: 'Inspecciones', icon: ClipboardCheck, roles: ALL },
-    { to: '/incidentes', label: 'Incidentes', icon: AlertTriangle, roles: ALL },
+    { to: '/incidentes', label: 'Eventos e incidentes', icon: AlertTriangle, roles: ALL },
     { to: '/planes', label: 'Planes de acción', icon: ListChecks, roles: ALL },
+    { to: '/no-conformidades', label: 'No conformidades (SAC)', icon: FileWarning, roles: STAFF },
   ] },
   { grupo: 'Personas', items: [
     { to: '/personal', label: 'Personal y acreditación', icon: Users, roles: ALL },
@@ -33,7 +35,12 @@ export const NAV = [
     { to: '/salud', label: 'Salud ocupacional', icon: HeartPulse, roles: ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'medico'] },
     { to: '/ambiente', label: 'Medio ambiente', icon: Leaf, roles: STAFF },
   ] },
+  { grupo: 'Indicadores', items: [
+    { to: '/estadisticas', label: 'Estadísticas de seguridad', icon: BarChart3, roles: ['gerente', 'lider', 'supervisor', 'asistente', 'analista'] },
+    { to: '/reporte-mensual', label: 'Reporte mensual', icon: FileBarChart, roles: ['gerente', 'lider', 'analista'] },
+  ] },
   { grupo: 'Gestión', items: [
+    { to: '/sgsst', label: 'Sistema de gestión (SGSST)', icon: Network, roles: STAFF },
     { to: '/gestion', label: 'PASSO, comité y auditorías', icon: Award, roles: STAFF },
     { to: '/formatos', label: 'Formatos', icon: FileStack, roles: STAFF },
     { to: '/archivos', label: 'Repositorio de archivos', icon: FolderTree, roles: ALL },
@@ -87,8 +94,9 @@ export default function Layout() {
           <div className="scope">
             {todas ? (
               <select value={unidadFiltro} onChange={(e) => setUnidadFiltro(e.target.value)} aria-label="Unidad minera">
-                <option value="todas">Todas las unidades ({db.unidades.length})</option>
-                {db.unidades.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                <option value="todas">Todas las sedes ({db.unidades.length})</option>
+                <optgroup label="Talleres DMZ">{db.unidades.filter((u) => u.tipo === 'taller').map((u) => <option key={u.id} value={u.id}>{u.nombre} · {u.detalle}</option>)}</optgroup>
+                <optgroup label="Unidades mineras">{db.unidades.filter((u) => u.tipo !== 'taller').map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}</optgroup>
               </select>
             ) : (
               <span className="scope-fixed"><Building2 size={15} /> {unidad?.nombre}</span>

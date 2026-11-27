@@ -8,6 +8,7 @@ import CapacitacionesApp from './capacitaciones/CapacitacionesApp.jsx';
 import './styles.css';
 import './portal/portal.css';
 import './acceso/acceso.css';
+import './sgsst.css';
 import AdminApp from './admin/AdminApp.jsx';
 
 // Panel central de acceso:
@@ -21,7 +22,7 @@ const path = window.location.pathname;
 const enModulo = (base) => path === base || path.startsWith(base + '/');
 
 // Compatibilidad: enlaces antiguos del HSE sin prefijo (/paradas, /iperc, …) pasan a /ssoma
-const RUTAS_HSE = ['unidades', 'paradas', 'permisos', 'iperc', 'inspecciones', 'incidentes', 'planes', 'personal', 'epp', 'archivos', 'reportes', 'roles', 'salud', 'ambiente', 'gestion', 'formatos', 'fase'];
+const RUTAS_HSE = ['unidades', 'paradas', 'permisos', 'iperc', 'inspecciones', 'incidentes', 'planes', 'personal', 'epp', 'archivos', 'reportes', 'roles', 'salud', 'ambiente', 'gestion', 'formatos', 'fase', 'no-conformidades', 'estadisticas', 'reporte-mensual', 'sgsst'];
 const primero = path.split('/')[1];
 if (RUTAS_HSE.includes(primero)) window.history.replaceState(null, '', '/ssoma' + path);
 

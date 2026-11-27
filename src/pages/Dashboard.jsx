@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
-import { useStore, acreditacion, motivosBloqueo, indicadores, estadoFecha, fmtFecha, nombreUnidad, nombreUsuario, puedeFirmar, hoy } from '../store.jsx';
+import { indicadores as indicadoresSg, rango, ultimoMesCerrado } from '../lib/sgsst.js';
+import { ANIO } from '../data/seed3.js';
+import { useStore, acreditacion, motivosBloqueo, estadoFecha, fmtFecha, nombreUnidad, nombreUsuario, puedeFirmar, hoy } from '../store.jsx';
 import { Badge, Card, PageHeader, Progress, Stat, Empty } from '../components/ui.jsx';
 import { TIPOS_PERMISO, ROLES } from '../data/seed.js';
 
@@ -19,7 +21,7 @@ export default function Dashboard() {
   const planes = db.planes.filter((p) => inScope(p.unidad));
   const abiertos = planes.filter((p) => p.estado !== 'Cerrado');
   const vencidos = abiertos.filter((p) => p.vence < hoy());
-  const kpi = indicadores(db, visibleUnits);
+  const kpi = indicadoresSg(db, { sedes: visibleUnits, meses: rango(0, ultimoMesCerrado(db)), anio: ANIO });
   const habil = personal.length ? Math.round(((personal.length - bloqueados.length) / personal.length) * 100) : 0;
 
   const porUnidad = visibleUnits.map((u) => ({
@@ -30,15 +32,15 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHeader title={`Hola, ${user.nombre.split(' ')[0]}`} subtitle={`${ROLES[user.rol].nombre} · ${visibleUnits.length === 1 ? nombreUnidad(db, visibleUnits[0]) : visibleUnits.length + ' unidades mineras'} · ${fmtFecha(hoy())}`} />
+      <PageHeader title={`Hola, ${user.nombre.split(' ')[0]}`} subtitle={`${ROLES[user.rol].nombre} · ${visibleUnits.length === 1 ? nombreUnidad(db, visibleUnits[0]) : `${visibleUnits.filter((u) => !u.startsWith('T')).length} unidades mineras y ${visibleUnits.filter((u) => u.startsWith('T')).length} talleres`} · ${fmtFecha(hoy())}`} />
 
       <div className="stats">
         <Stat label="Personal habilitado" value={`${habil}%`} hint={`${bloqueados.length} bloqueados · ${porVencer.length} por vencer`} tone={bloqueados.length ? 'warn' : 'ok'} />
         <Stat label="Paradas en curso" value={enCurso.length} hint={`${proximas.length} planificadas`} />
         <Stat label="Permisos por firmar" value={pendientes.length} hint={misFirmas.length ? `${misFirmas.length} esperan tu firma` : 'Ninguno espera tu firma'} tone={misFirmas.length ? 'warn' : ''} />
         <Stat label="Planes de acción abiertos" value={abiertos.length} hint={`${vencidos.length} vencidos`} tone={vencidos.length ? 'bad' : 'ok'} />
-        <Stat label="Índice de frecuencia" value={kpi.IF.toFixed(2)} hint={`IS ${kpi.IS.toFixed(2)} · IA ${kpi.IA.toFixed(3)}`} />
-        <Stat label="Horas hombre (año)" value={kpi.hh.toLocaleString('es-PE')} hint={`${kpi.incidentes} eventos reportados`} />
+        <Stat label="Índice de frecuencia" value={kpi.IF.toFixed(2)} hint={`IG ${kpi.IG.toFixed(2)} · TRIR ${kpi.TRIR.toFixed(2)}`} />
+        <Stat label="Horas hombre (año)" value={kpi.hht.toLocaleString('es-PE')} hint={`${kpi.eventos.length} eventos en el año`} />
       </div>
 
       <div className="grid-2">
@@ -108,7 +110,7 @@ export default function Dashboard() {
       </div>
 
       {visibleUnits.length > 1 && (
-        <Card title="Hallazgos abiertos por unidad">
+        <Card title="Planes de acción abiertos por sede">
           <div className="bars">
             {porUnidad.map((x) => (
               <div className="bar-row" key={x.u}>

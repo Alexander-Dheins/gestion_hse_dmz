@@ -1,5 +1,9 @@
 // Datos 100% ficticios para la demo. Ninguna persona, unidad ni empresa es real.
 import { buildIpercContinuo, buildMonitoreos, buildResiduos, buildDerrames, buildAspectos, buildPasso, buildActas, buildRequisitos, buildAuditorias, buildCambios } from './seed2.js';
+import {
+  TALLERES, buildHallazgos, buildProgramaInspecciones, buildNoConformidades, buildEventos, buildPlanesEventos,
+  buildHht, buildCartillas, buildDocumentosSgsst, CLASE_INCIDENTES_PREVIOS, tipoDeClase,
+} from './seed3.js';
 
 const DAY = 86400000;
 export const iso = (offsetDays = 0) => {
@@ -347,17 +351,22 @@ export function buildArchivos() {
 }
 
 export function buildSeed() {
+  const eventos = [
+    ...buildIncidentes().map((i) => ({ ...i, ...CLASE_INCIDENTES_PREVIOS[i.id], tipo: tipoDeClase(CLASE_INCIDENTES_PREVIOS[i.id]?.clase || 'INC') })),
+    ...buildEventos(),
+  ];
   return {
-    version: 2,
-    unidades: UNIDADES,
+    version: 3,
+    // unidades mineras (clientes) + talleres propios de DMZ
+    unidades: [...UNIDADES.map((u) => ({ ...u, tipo: 'um' })), ...TALLERES],
     usuarios: USUARIOS,
     personal: buildPersonal(),
     paradas: buildParadas(),
     permisos: buildPermisos(),
     iperc: buildIperc(),
     inspecciones: buildInspecciones(),
-    incidentes: buildIncidentes(),
-    planes: buildPlanes(),
+    incidentes: eventos,
+    planes: [...buildPlanes(), ...buildPlanesEventos(eventos.filter((e) => !CLASE_INCIDENTES_PREVIOS[e.id]))],
     capacitaciones: buildCapacitaciones(),
     epp: buildEpp(),
     carpetas: buildCarpetas(),
@@ -374,6 +383,13 @@ export function buildSeed() {
     requisitos: buildRequisitos(),
     auditorias: buildAuditorias(),
     cambios: buildCambios(),
+    // integración con los documentos del SGSST
+    hallazgos: buildHallazgos(),
+    programaInsp: buildProgramaInspecciones(),
+    noConformidades: buildNoConformidades(),
+    estadisticas: buildHht(),
+    cartillas: buildCartillas(),
+    sgsstDocs: buildDocumentosSgsst(),
     bitacora: [],
   };
 }

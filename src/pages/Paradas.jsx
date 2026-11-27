@@ -60,7 +60,7 @@ export default function Paradas() {
           footer={<><button className="btn" onClick={() => setNueva(null)}>Cancelar</button><button className="btn btn-primary" onClick={guardar}>Guardar</button></>}>
           <Field label="Unidad minera">
             <select value={nueva.unidad} onChange={(e) => setNueva({ ...nueva, unidad: e.target.value })}>
-              {visibleUnits.map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}
+              {visibleUnits.filter((u) => !u.startsWith('T')).map((u) => <option key={u} value={u}>{nombreUnidad(db, u)}</option>)}
             </select>
           </Field>
           <Field label="Equipo"><input value={nueva.equipo} onChange={(e) => setNueva({ ...nueva, equipo: e.target.value })} placeholder="Molino de bolas 16'x24' (ML-02)" /></Field>
