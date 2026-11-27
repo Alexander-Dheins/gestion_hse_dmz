@@ -9,15 +9,14 @@ import './styles.css';
 import './portal/portal.css';
 import './acceso/acceso.css';
 import AdminApp from './admin/AdminApp.jsx';
-import { SinAcceso } from './acceso/Shell.jsx';
-import { sesionActual } from './acceso/db.jsx';
 
 // Panel central de acceso:
 //   /                 -> portal (splash + selección de módulo)
 //   /ssoma/...        -> Sistema de Gestión HSE (app existente)
 //   /capacitaciones/… -> Plataforma de Capacitaciones
 //   /admin/…          -> Administración de accesos (trabajadores, grupos, carga masiva)
-// El acceso a cada módulo depende de los grupos del trabajador con sesión iniciada.
+// Cada módulo tiene su propio ingreso (Capacitaciones: DNI + PIN; SSOMA y Administración: correo + contraseña)
+// y deja pasar solo a quien tiene el permiso por sus grupos.
 const path = window.location.pathname;
 const enModulo = (base) => path === base || path.startsWith(base + '/');
 
@@ -26,13 +25,9 @@ const RUTAS_HSE = ['unidades', 'paradas', 'permisos', 'iperc', 'inspecciones', '
 const primero = path.split('/')[1];
 if (RUTAS_HSE.includes(primero)) window.history.replaceState(null, '', '/ssoma' + path);
 
-const { persona, accesos } = sesionActual();
 let root;
-if ((enModulo('/ssoma') || enModulo('/capacitaciones') || enModulo('/admin')) && !persona) {
-  // Sin sesión: primero se ingresa en el portal
-  window.location.replace('/');
-} else if (enModulo('/ssoma') || RUTAS_HSE.includes(primero)) {
-  root = !accesos.ssoma ? <SinAcceso modulo="SSOMA DMZ" /> : (
+if (enModulo('/ssoma') || RUTAS_HSE.includes(primero)) {
+  root = (
     <StoreProvider>
       <BrowserRouter basename="/ssoma">
         <App />
@@ -56,4 +51,4 @@ if ((enModulo('/ssoma') || enModulo('/capacitaciones') || enModulo('/admin')) &&
   root = <Portal />;
 }
 
-if (root) ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>{root}</React.StrictMode>);
+ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode>{root}</React.StrictMode>);

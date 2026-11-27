@@ -1,18 +1,25 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Users, BookOpen, CalendarDays, Award, BarChart3, GraduationCap, UsersRound, RotateCcw } from 'lucide-react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { LayoutDashboard, Users, BookOpen, CalendarDays, Award, BarChart3, GraduationCap, RotateCcw } from 'lucide-react';
 import { CapProvider, useCap } from './store.jsx';
-import { sesionActual, CAP_ROL } from '../acceso/db.jsx';
-import Shell, { SinAcceso } from '../acceso/Shell.jsx';
-import { MovilLayout, BaseCtx } from './movil/Base.jsx';
+import { sesionModulo, CAP_ROL } from '../acceso/db.jsx';
+import Shell from '../acceso/Shell.jsx';
+import LoginModulo from '../acceso/LoginModulo.jsx';
+import { MovilLayout } from './movil/Base.jsx';
 import { Inicio, Cursos, Detalle, Certificados, VerCertificado, Avisos, Perfil } from './movil/Paginas.jsx';
 import { Video, Encuesta, Resultado } from './movil/Video.jsx';
 import { GInicio, GPersonal, GCursos, GProgramacion, GCertificados, GReportes, useAlcance } from './gestion/Gestion.jsx';
 import './cap.css';
 
 export default function CapacitacionesApp() {
-  const { persona, accesos } = sesionActual();
-  if (!persona) return null;
-  if (!accesos.cap) return <SinAcceso modulo="Capacitaciones" />;
+  const { persona, accesos } = sesionModulo('cap');
+  if (!persona || !accesos.cap) {
+    return (
+      <LoginModulo modulo="cap" tipo="dni" titulo="Capacitaciones" color="#2370B8" Icono={GraduationCap}
+        subtitulo="Tus cursos obligatorios de seguridad, en video y desde cualquier dispositivo."
+        puntos={['Videos con evaluación por módulo', 'Encuesta y nota final del curso', 'Certificados con código QR']}
+        demo={['45872103', '46120934', '40221587', '41556790']} permiso={(a) => !!a.cap} onOk={() => { window.location.href = '/capacitaciones'; }} />
+    );
+  }
   return (
     <CapProvider persona={persona} rol={accesos.cap}>
       {accesos.cap === 'participante' ? <RutasTrabajador /> : <RutasGestion accesos={accesos} />}
@@ -21,10 +28,6 @@ export default function CapacitacionesApp() {
 }
 
 // Vista del trabajador (móvil primero). El supervisor también la usa en /mi para sus propios cursos.
-function Full({ base }) {
-  return <BaseCtx.Provider value={base}><Outlet /></BaseCtx.Provider>;
-}
-
 function rutasTrabajador(base) {
   return [
     <Route key="l" element={<MovilLayout base={base} />}>
@@ -36,7 +39,7 @@ function rutasTrabajador(base) {
       <Route path="avisos" element={<Avisos />} />
       <Route path="perfil" element={<Perfil />} />
     </Route>,
-    <Route key="f" element={<Full base={base} />}>
+    <Route key="f" element={<MovilLayout base={base} full />}>
       <Route path="curso/:id/video/:mid" element={<Video />} />
       <Route path="curso/:id/encuesta" element={<Encuesta />} />
       <Route path="curso/:id/resultado" element={<Resultado />} />
@@ -71,9 +74,8 @@ function RutasGestion({ accesos }) {
     ] },
   ];
   const shell = (
-    <Shell titulo="DIMARZA" subtitulo="Capacitación SSOMA" nav={nav} persona={persona} rol={`${CAP_ROL[rol]} · Capacitaciones`} toast={toast}
+    <Shell modulo="cap" titulo="DIMARZA" subtitulo="Capacitación SSOMA" nav={nav} persona={persona} rol={`${CAP_ROL[rol]} · Capacitaciones`} toast={toast}
       extraTop={<>
-        {accesos.admin && <a href="/admin" className="btn btn-ghost btn-sm"><UsersRound size={15} /> <span className="hide-sm">Usuarios y accesos</span></a>}
         <button className="btn btn-ghost btn-sm" onClick={reset} title="Volver a los datos iniciales"><RotateCcw size={15} /> <span className="hide-sm">Restablecer demo</span></button>
       </>} />
   );

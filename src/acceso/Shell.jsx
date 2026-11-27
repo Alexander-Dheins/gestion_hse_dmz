@@ -4,7 +4,7 @@ import { LayoutGrid, LogOut, Menu, Lock, ArrowLeft } from 'lucide-react';
 import { cerrarSesion, iniciales } from './db.jsx';
 
 // Marco de escritorio común (panel de accesos y gestión de Capacitaciones)
-export default function Shell({ titulo, subtitulo, nav, persona, rol, toast, extraTop }) {
+export default function Shell({ modulo, titulo, subtitulo, nav, persona, rol, toast, extraTop }) {
   const [open, setOpen] = useState(false);
   return (
     <div className={`app shell ${open ? 'nav-open' : ''}`}>
@@ -41,7 +41,7 @@ export default function Shell({ titulo, subtitulo, nav, persona, rol, toast, ext
           <button className="icon-btn burger" onClick={() => setOpen(!open)} aria-label="Menú"><Menu size={20} /></button>
           {extraTop}
           <div className="topbar-right">
-            <button className="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión" onClick={cerrarSesion}><LogOut size={18} /></button>
+            <button className="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión" onClick={() => cerrarSesion(modulo)}><LogOut size={18} /></button>
           </div>
         </header>
         <main className="content">
@@ -66,10 +66,4 @@ export function SinAcceso({ modulo, mensaje }) {
       </main>
     </div>
   );
-}
-
-// Si no hay sesión, vuelve al portal para iniciarla
-export function requiereSesion(persona) {
-  if (!persona) { window.location.replace('/'); return false; }
-  return true;
 }

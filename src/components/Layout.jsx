@@ -6,6 +6,7 @@ import {
 import { useState } from 'react';
 import { useStore } from '../store.jsx';
 import { ROLES } from '../data/seed.js';
+import { cerrarSesion } from '../acceso/db.jsx';
 
 const ALL = ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'sup_mant', 'medico', 'trabajador'];
 const STAFF = ['gerente', 'lider', 'supervisor', 'asistente', 'analista', 'sup_mant', 'medico'];
@@ -104,7 +105,7 @@ export default function Layout() {
                 <span>{ROLES[user.rol].nombre}</span>
               </div>
             </div>
-            <button className="icon-btn" title="Cambiar de usuario" aria-label="Cambiar de usuario" onClick={() => { setUserId(null); nav('/'); }}><LogOut size={18} /></button>
+            <button className="icon-btn" title="Cerrar sesión" aria-label="Cerrar sesión" onClick={() => { setUserId(null); cerrarSesion('ssoma'); }}><LogOut size={18} /></button>
           </div>
         </header>
         <main className="content">

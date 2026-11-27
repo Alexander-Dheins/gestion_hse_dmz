@@ -43,6 +43,8 @@ export function Inicio() {
         <Link to={`${B}/avisos`} className="cp-ibtn" aria-label="Avisos"><Bell size={18} />{sinLeer && <i className="cp-dot" />}</Link>
       </header>
 
+      <div className="cp-home">
+      <div className="cp-col">
       <section className="cp-hero">
         <Anillo v={pct} />
         <div>
@@ -69,9 +71,11 @@ export function Inicio() {
         </>
       )}
 
+      </div>
+      <div className="cp-col">
       {fechas.length > 0 && (
         <>
-          <span className="cp-lbl">Próximas fechas</span>
+          <span className="cp-lbl first">Próximas fechas</span>
           <div className="cp-card cp-list">
             {fechas.map((x, i) => (
               <div key={i} className="cp-fecha">
@@ -84,6 +88,8 @@ export function Inicio() {
         </>
       )}
       {!lista.length && <div className="cp-card cp-empty">Todavía no tienes cursos asignados.</div>}
+      </div>
+      </div>
 
       {modal && (
         <div className="cp-sheet-back">
@@ -123,7 +129,7 @@ export function Cursos() {
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l} <em>{n}</em></button>
         ))}
       </div>
-      <div className="cp-stack">
+      <div className="cp-stack cp-grid">
         {vis.map((x) => (
           <Link key={x.c.id} to={`${B}/curso/${x.c.id}`} className="cp-card cp-curso">
             <div className="cp-row"><div className="cp-thumb sm" style={{ '--c': x.c.color }}><BookOpen size={16} /></div><strong className="grow">{x.c.nombre}</strong><Chip tono={tonoEstado[x.estado]}>{x.estado}</Chip></div>
@@ -155,6 +161,8 @@ export function Detalle() {
   return (
     <div className="cp-page">
       <Atras to={`${B}/cursos`} label="Mis cursos" right={<span className="cp-ibtn"><List size={17} /></span>} />
+      <div className="cp-det">
+      <div className="cp-col">
       <h1 className="cp-h1">{c.nombre}</h1>
       <p className="cp-muted cp-sub">Obligatorio · vence {fFecha(x.a.cierre)} · {c.modulos.length} videos · {totalPreguntas(c)} preguntas</p>
       <div className="cp-row cp-muted small"><span>Avance del curso</span><span className="mono">{x.completos} de {c.modulos.length} módulos</span></div>
@@ -194,9 +202,11 @@ export function Detalle() {
         </Link>
       </div>
 
+      </div>
+      <div className="cp-col cp-side-col">
       {bloqueado && <div className="cp-warn"><AlertTriangle size={16} /> {x.estado === 'Vencido' ? 'La fecha límite pasó. Pide a tu supervisor que reprograme el curso.' : 'Usaste tus 3 intentos. Tu supervisor puede habilitarte uno más.'}</div>}
 
-      <span className="cp-lbl">Reglas del curso</span>
+      <span className="cp-lbl first">Reglas del curso</span>
       <div className="cp-reglas">
         <div><RotateCcw size={15} /> Puedes pausar y retroceder</div>
         <div><Lock size={15} /> No se puede adelantar</div>
@@ -207,6 +217,8 @@ export function Detalle() {
       {!cerrado && !bloqueado && x.actual && (
         <Link className="cp-btn azul" to={`${B}/curso/${c.id}/video/${x.actual.id}`} style={{ marginTop: 16 }}><Play size={16} fill="#fff" /> {x.completos || p.mod[x.actual.id] ? 'Continuar' : 'Empezar'}: {x.actual.titulo}</Link>
       )}
+      </div>
+      </div>
 
       {aviso && (
         <div className="cp-sheet-back">
@@ -232,7 +244,7 @@ export function Certificados() {
     <div className="cp-page">
       <h1 className="cp-h1">Mis certificados</h1>
       <p className="cp-muted cp-sub">Cada certificado tiene un código QR para verificarlo en campo.</p>
-      <div className="cp-stack">
+      <div className="cp-stack cp-grid">
         {certs.map((x) => {
           const d = diasHasta(x.p.cert.vence);
           return (
@@ -287,6 +299,7 @@ export function Avisos() {
   );
   return (
     <div className="cp-page">
+      <div className="cp-narrow">
       <Atras to={B || '/'} label="Inicio" right={<button className="cp-link-btn" onClick={() => acciones.leer(todos.map((a) => a.id))}>Marcar todo leído</button>} />
       <h1 className="cp-h1">Avisos</h1>
       <div className="cp-tabs">
@@ -296,6 +309,7 @@ export function Avisos() {
       {vis.some((a) => !a.atencion) && <><span className="cp-lbl">Anteriores</span><div className="cp-card cp-list">{vis.filter((a) => !a.atencion).map(fila)}</div></>}
       {!vis.length && <div className="cp-card cp-empty">No tienes avisos.</div>}
       <p className="cp-muted cp-foot"><MessageCircle size={13} /> También llegan a tu WhatsApp registrado</p>
+      </div>
     </div>
   );
 }
@@ -304,10 +318,12 @@ export function Avisos() {
 export function Perfil() {
   const { acc, persona, notify } = useCap();
   const [pinModal, setPinModal] = useState(false);
-  const accesos = accesosDe(acc, persona);
   const sup = participantes(acc).find((t) => t.area === persona.area && t.dni !== persona.dni && accesosDe(acc, t).cap === 'supervisor');
   return (
     <div className="cp-page">
+      <h1 className="cp-h1 web-only">Mi perfil</h1>
+      <div className="cp-prof">
+      <div className="cp-col">
       <div className="cp-perfil">
         <div className="cp-av lg">{iniciales(persona.nombre)}</div>
         <h1>{persona.nombre}</h1>
@@ -319,12 +335,16 @@ export function Perfil() {
         <div><span>Unidad</span><strong>{persona.unidad}</strong></div>
         <div><span>Supervisor</span><strong>{sup?.nombre || '—'}</strong></div>
       </div>
+      </div>
+      <div className="cp-col">
       <div className="cp-card cp-list">
         <button className="cp-li" onClick={() => setPinModal(true)}><div className="cp-mi azul"><KeyRound size={16} /></div><div className="grow"><strong>Cambiar mi PIN</strong><span className="cp-muted">4 dígitos que solo tú conoces</span></div><ChevronRight size={17} /></button>
-        {accesos.ssoma && <a className="cp-li" href="/"><div className="cp-mi azul"><ArrowLeftRight size={16} /></div><div className="grow"><strong>Cambiar de plataforma</strong><span className="cp-muted">Ir a SSOMA DMZ u otro módulo</span></div><ChevronRight size={17} /></a>}
-        <button className="cp-li" onClick={cerrarSesion}><div className="cp-mi rojo"><LogOut size={16} /></div><div className="grow"><strong className="rojo-t">Cerrar sesión</strong></div></button>
+        <a className="cp-li" href="/"><div className="cp-mi azul"><ArrowLeftRight size={16} /></div><div className="grow"><strong>Cambiar de plataforma</strong><span className="cp-muted">Volver al panel de acceso</span></div><ChevronRight size={17} /></a>
+        <button className="cp-li" onClick={() => cerrarSesion('cap')}><div className="cp-mi rojo"><LogOut size={16} /></div><div className="grow"><strong className="rojo-t">Cerrar sesión</strong></div></button>
       </div>
       <div className="cp-info"><Info size={15} /> ¿Tus datos, correo o número de WhatsApp están mal? Pide a tu supervisor que los actualice.</div>
+      </div>
+      </div>
       {pinModal && <CambiarPin onClose={() => setPinModal(false)} onOk={() => { setPinModal(false); notify('PIN actualizado'); }} persona={persona} />}
     </div>
   );

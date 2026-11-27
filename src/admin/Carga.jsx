@@ -1,20 +1,21 @@
 import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Download, Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Sparkles, RotateCcw } from 'lucide-react';
-import { useAcceso, accesosDe, pinAleatorio } from '../acceso/db.jsx';
+import { useAcceso, accesosDe, pinAleatorio, passAleatoria, SSOMA_PERFILES } from '../acceso/db.jsx';
 import { AREAS, UNIDADES } from '../acceso/seed.js';
 import { PageHeader, Card, Badge, Field } from '../components/ui.jsx';
-import { AccTags, aplicarEnvio } from './comun.jsx';
+import { AccTags, aplicarEnvio, credencialesNuevas } from './comun.jsx';
 
-const COLS = ['DNI', 'Nombres y apellidos', 'Área', 'Cargo', 'Unidad', 'Correo', 'WhatsApp', 'Grupos'];
+const COLS = ['DNI', 'Nombres y apellidos', 'Área', 'Cargo', 'Unidad', 'Correo', 'WhatsApp', 'Grupos', 'Rol SSOMA'];
+const ROLES_SSOMA = SSOMA_PERFILES.map((p) => ({ id: p.id, rol: p.label.split(' · ')[0] }));
 const EJEMPLO = [
-  ['47120558', 'Marco Antonio Lazo Pérez', 'Mantenimiento', 'Técnico mecánico', 'U.M. Kallpa Norte', 'mlazo@dimarza.com.pe', '+51 987 111 222', 'Capacitaciones · Participantes'],
-  ['48233190', 'Yessica Huarcaya Ríos', 'Seguridad (SSOMA)', 'Asistente SSOMA', 'U.M. Kallpa Norte', 'yhuarcaya@dimarza.com.pe', '+51 987 333 444', 'Acceso completo'],
-  ['42876013', 'Julio César Ñahui Poma', 'Mantenimiento', 'Supervisor de mantenimiento', 'U.M. Kallpa Norte', 'jnahui@dimarza.com.pe', '+51 987 555 666', 'Capacitaciones · Supervisores; SSOMA DMZ · Usuarios'],
-  ['44590321', 'Gabriela Torres Lindo', 'Administración', 'Analista de RR. HH.', 'Sede Lima', 'gtorres@dimarza.com.pe', '+51 987 777 888', 'Capacitaciones · Administradores'],
-  ['45872103', 'Jhonatan Ramírez Quispe', 'Mantenimiento', 'Técnico mecánico', 'U.M. Cerro Azul', 'jramirez@dimarza.com.pe', '+51 987 654 321', 'Acceso completo'],
-  ['4588', 'Pedro Sin DNI Válido', 'Logística', 'Almacenero', 'U.M. Llamac', '', '', 'Capacitaciones · Participantes'],
-  ['49011772', 'Ruth Mamani Coaquira', 'Operaciones', 'Operador de grúa', 'U.M. Pampa Roja', 'rmamani@dimarza.com.pe', '+51 987 999 000', 'Grupo que no existe'],
+  ['47120558', 'Marco Antonio Lazo Pérez', 'Mantenimiento', 'Técnico mecánico', 'U.M. Kallpa Norte', 'mlazo@dimarza.com.pe', '+51 987 111 222', 'Capacitaciones · Participantes', ''],
+  ['48233190', 'Yessica Huarcaya Ríos', 'Seguridad (SSOMA)', 'Asistente SSOMA', 'U.M. Kallpa Norte', 'yhuarcaya@dimarza.com.pe', '+51 987 333 444', 'Acceso completo', 'Asistente HSE'],
+  ['42876013', 'Julio César Ñahui Poma', 'Mantenimiento', 'Supervisor de mantenimiento', 'U.M. Kallpa Norte', 'jnahui@dimarza.com.pe', '+51 987 555 666', 'Capacitaciones · Supervisores; SSOMA DMZ · Usuarios', 'Supervisor de mantenimiento'],
+  ['44590321', 'Gabriela Torres Lindo', 'Administración', 'Analista de RR. HH.', 'Sede Lima', 'gtorres@dimarza.com.pe', '+51 987 777 888', 'Capacitaciones · Administradores', ''],
+  ['45872103', 'Jhonatan Ramírez Quispe', 'Mantenimiento', 'Técnico mecánico', 'U.M. Cerro Azul', 'jramirez@dimarza.com.pe', '+51 987 654 321', 'Acceso completo', 'Trabajador'],
+  ['4588', 'Pedro Sin DNI Válido', 'Logística', 'Almacenero', 'U.M. Llamac', '', '', 'Capacitaciones · Participantes', ''],
+  ['49011772', 'Ruth Mamani Coaquira', 'Operaciones', 'Operador de grúa', 'U.M. Pampa Roja', 'rmamani@dimarza.com.pe', '+51 987 999 000', 'Grupo que no existe', 'Trabajador'],
 ];
 
 const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -30,6 +31,7 @@ function mapearColumnas(cab) {
     else if (n.includes('unidad') || n.includes('sede')) m.unidad = i;
     else if (n.includes('correo') || n.includes('email')) m.correo = i;
     else if (n.includes('whatsapp') || n.includes('celular') || n.includes('telefono')) m.whatsapp = i;
+    else if (n.includes('rol')) m.rol = i;
     else if (n.includes('grupo')) m.grupos = i;
   });
   return m;
@@ -82,10 +84,15 @@ export default function Carga() {
       if (!/^\d{8}$/.test(dni)) errores.push('DNI debe tener 8 dígitos');
       if (v('nombre').length < 4) errores.push('Falta el nombre');
       if (vistos.has(dni)) errores.push('DNI repetido en el archivo');
+      const rolTxt = v('rol');
+      const perfil = rolTxt ? ROLES_SSOMA.find((x) => norm(x.rol) === norm(rolTxt))?.id : null;
+      if (rolTxt && !perfil) errores.push(`Rol SSOMA "${rolTxt}" no existe`);
+      const correoOtro = v('correo') && db.trabajadores.find((t) => t.correo.toLowerCase() === v('correo').toLowerCase() && t.dni !== dni);
+      if (correoOtro) errores.push('Correo usado por otro trabajador');
       vistos.add(dni);
       const area = AREAS.find((a) => norm(a) === norm(v('area'))) || v('area') || AREAS[0];
       const existe = db.trabajadores.find((t) => t.dni === dni);
-      return { n: i + 2, dni, nombre: v('nombre'), area, cargo: v('cargo'), unidad: v('unidad') || UNIDADES[0], correo: v('correo'), whatsapp: v('whatsapp'), grupos, errores, existe: !!existe };
+      return { n: i + 2, dni, perfil, nombre: v('nombre'), area, cargo: v('cargo'), unidad: v('unidad') || UNIDADES[0], correo: v('correo'), whatsapp: v('whatsapp'), grupos, errores, existe: !!existe };
     });
     setArchivo(nombre); setFilas(res);
   };
@@ -107,7 +114,7 @@ export default function Carga() {
     const { default: writeExcelFile } = await import('write-excel-file/browser');
     const data = [COLS.map((c) => ({ value: c, fontWeight: 'bold', backgroundColor: '#0E2A4D', color: '#FFFFFF' })), ...EJEMPLO.slice(0, 2).map((r) => r.map((value) => ({ value, type: String })))];
     const grupos = [[{ value: 'Grupos disponibles (escribir el nombre exacto; varios separados por ;)', fontWeight: 'bold' }], ...db.grupos.map((g) => [{ value: g.nombre }])];
-    await writeExcelFile([{ data, sheet: 'Trabajadores', columns: [12, 32, 20, 26, 20, 28, 18, 40].map((width) => ({ width })) }, { data: grupos, sheet: 'Grupos', columns: [{ width: 60 }] }]).toFile('plantilla_trabajadores_dmz.xlsx');
+    await writeExcelFile([{ data, sheet: 'Trabajadores', columns: [12, 32, 20, 26, 20, 28, 18, 40, 26].map((width) => ({ width })) }, { data: grupos, sheet: 'Grupos', columns: [{ width: 60 }] }]).toFile('plantilla_trabajadores_dmz.xlsx');
   };
   const plantillaCsv = () => {
     const esc = (x) => (/[;"\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x);
@@ -128,13 +135,14 @@ export default function Carga() {
         if (t) {
           Object.assign(t, { nombre: f.nombre, area: f.area, cargo: f.cargo || t.cargo, unidad: f.unidad, correo: f.correo || t.correo, whatsapp: f.whatsapp || t.whatsapp });
           t.grupos = [...new Set([...t.grupos, ...grupos])];
+          if (f.perfil) t.ssomaPerfil = f.perfil;
           act++;
         } else {
-          t = { dni: f.dni, nombre: f.nombre, area: f.area, cargo: f.cargo, unidad: f.unidad, correo: f.correo, whatsapp: f.whatsapp, grupos, pin: '', pinTemporal: true, activo: true, envios: [] };
+          t = { dni: f.dni, nombre: f.nombre, area: f.area, cargo: f.cargo, unidad: f.unidad, correo: f.correo, whatsapp: f.whatsapp, grupos, ssomaPerfil: f.perfil || 'u9', pin: '', pinTemporal: true, password: '', passTemporal: true, activo: true, envios: [] };
           d.trabajadores.unshift(t);
           nuevos++;
         }
-        if (enviar && t.grupos.length) aplicarEnvio(t, ['Correo', 'WhatsApp'].filter((c) => (c === 'Correo' ? t.correo : t.whatsapp)), pinAleatorio());
+        if (enviar && t.grupos.length) aplicarEnvio(t, ['Correo', 'WhatsApp'].filter((c) => (c === 'Correo' ? t.correo : t.whatsapp)), credencialesNuevas(accesosDe(d, t), pinAleatorio, passAleatoria));
       });
     });
     setHecho({ nuevos, act, omitidos: filas.length - validas.length });
@@ -166,11 +174,13 @@ export default function Carga() {
       {!filas && !hecho && (
         <div className="grid-2">
           <Card title="1 · Plantilla">
-            <p className="muted" style={{ marginTop: 0 }}>Columnas: {COLS.join(', ')}. En «Grupos» escribe el nombre del grupo; si son varios, sepáralos con punto y coma.</p>
+            <p className="muted" style={{ marginTop: 0 }}>Columnas: {COLS.join(', ')}. En «Grupos» escribe el nombre del grupo; si son varios, sepáralos con punto y coma. «Rol SSOMA» es opcional (por defecto, Trabajador).</p>
             <div className="page-actions">
               <button className="btn btn-primary" onClick={plantillaXlsx}><Download size={15} /> Plantilla Excel</button>
               <button className="btn" onClick={plantillaCsv}><Download size={15} /> Plantilla CSV</button>
             </div>
+            <span className="lbl-up">Roles SSOMA</span>
+            <p className="muted small" style={{ marginTop: 0 }}>{[...new Set(ROLES_SSOMA.map((r) => r.rol))].join(' · ')}</p>
             <span className="lbl-up">Grupos disponibles</span>
             <div>{db.grupos.map((g) => <span key={g.id} className="chip-g" style={{ '--c': g.color }}>{g.nombre}</span>)}</div>
           </Card>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Send, Mail, MessageCircle, Check, Power, GraduationCap, ShieldCheck, UsersRound } from 'lucide-react';
-import { useAcceso, accesosDe, iniciales, pinAleatorio, CAP_ROL } from '../acceso/db.jsx';
+import { useAcceso, accesosDe, iniciales, pinAleatorio, passAleatoria, CAP_ROL, SSOMA_PERFILES, perfilSsoma } from '../acceso/db.jsx';
 import { AREAS, UNIDADES } from '../acceso/seed.js';
 import { Card, Field, Badge, Empty } from '../components/ui.jsx';
 import { fechaHora, aplicarEnvio, mensajeAcceso } from './comun.jsx';
@@ -11,6 +11,7 @@ export default function Trabajador() {
   const { db, update, notify } = useAcceso();
   const t = db.trabajadores.find((x) => x.dni === dni);
   const [pin, setPin] = useState(pinAleatorio);
+  const [pass, setPass] = useState(passAleatoria);
   const [canales, setCanales] = useState(['Correo', 'WhatsApp']);
   if (!t) return <Empty>No existe el trabajador. <Link className="link" to="/trabajadores">Volver</Link></Empty>;
   const acc = accesosDe(db, t);
@@ -18,14 +19,15 @@ export default function Trabajador() {
   const toggleGrupo = (gid) => set((x) => { x.grupos = x.grupos.includes(gid) ? x.grupos.filter((g) => g !== gid) : [...x.grupos, gid]; });
   const toggleCanal = (c) => setCanales((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]));
   const enviar = () => {
-    set((x) => aplicarEnvio(x, canales, pin));
+    set((x) => aplicarEnvio(x, canales, cred));
     notify(`Acceso enviado a ${t.nombre.split(' ')[0]} por ${canales.join(' y ')}`);
-    setPin(pinAleatorio());
+    setPin(pinAleatorio()); setPass(passAleatoria());
   };
   const ultimo = t.envios[0];
+  const cred = { pin: acc.cap ? pin : null, pass: acc.ssoma || acc.admin ? pass : null };
   const plataformas = [
     { on: !!acc.cap, icon: GraduationCap, n: 'Capacitaciones', d: acc.cap ? `Rol: ${CAP_ROL[acc.cap]}` : 'Sin acceso' },
-    { on: acc.ssoma, icon: ShieldCheck, n: 'SSOMA DMZ', d: acc.ssoma ? 'Gestión HSE' : 'Sin acceso' },
+    { on: acc.ssoma, icon: ShieldCheck, n: 'SSOMA DMZ', d: acc.ssoma ? perfilSsoma(t.ssomaPerfil) : 'Sin acceso' },
     { on: acc.admin, icon: UsersRound, n: 'Administración de accesos', d: acc.admin ? 'Gestiona usuarios y grupos' : 'Sin acceso' },
   ];
 
@@ -78,20 +80,43 @@ export default function Trabajador() {
 
         <div>
           <Card title="Enviar acceso">
-            <div className="form-2">
-              <Field label="Usuario (DNI)"><input value={t.dni} readOnly /></Field>
-              <Field label="PIN temporal">
-                <div className="pin-box">{pin.split('').join(' ')}<button className="icon-btn" title="Generar otro" aria-label="Generar otro PIN" onClick={() => setPin(pinAleatorio())}><RefreshCw size={15} /></button></div>
-              </Field>
-            </div>
-            <p className="muted small" style={{ marginTop: -4 }}>En su primer ingreso, el trabajador crea su propio PIN de 4 dígitos.</p>
+            {acc.cap && (
+              <>
+                <span className="lbl-up" style={{ marginTop: 0 }}>Capacitaciones · ingresa con DNI + PIN</span>
+                <div className="form-2">
+                  <Field label="Usuario (DNI)"><input value={t.dni} readOnly /></Field>
+                  <Field label="PIN temporal">
+                    <div className="pin-box">{pin.split('').join(' ')}<button className="icon-btn" title="Generar otro" aria-label="Generar otro PIN" onClick={() => setPin(pinAleatorio())}><RefreshCw size={15} /></button></div>
+                  </Field>
+                </div>
+              </>
+            )}
+            {(acc.ssoma || acc.admin) && (
+              <>
+                <span className="lbl-up" style={acc.cap ? {} : { marginTop: 0 }}>{acc.ssoma ? 'SSOMA DMZ' : 'Administración'} · ingresa con correo + contraseña</span>
+                <div className="form-2">
+                  <Field label="Correo"><input value={t.correo} readOnly /></Field>
+                  <Field label="Contraseña temporal">
+                    <div className="pin-box" style={{ letterSpacing: 1 }}>{pass}<button className="icon-btn" title="Generar otra" aria-label="Generar otra contraseña" onClick={() => setPass(passAleatoria())}><RefreshCw size={15} /></button></div>
+                  </Field>
+                </div>
+                {acc.ssoma && (
+                  <Field label="Rol dentro de SSOMA DMZ">
+                    <select value={t.ssomaPerfil || 'u9'} onChange={(e) => { set((x) => { x.ssomaPerfil = e.target.value; }); notify('Rol en SSOMA actualizado'); }}>
+                      {SSOMA_PERFILES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                  </Field>
+                )}
+              </>
+            )}
+            <p className="muted small" style={{ marginTop: -4 }}>En su primer ingreso, el trabajador cambia el PIN o la contraseña temporal.</p>
             <span className="lbl-up">Enviar por</span>
             <div className="opt-list">
               <label className={`opt ${canales.includes('Correo') ? 'on' : ''}`}><input type="checkbox" checked={canales.includes('Correo')} onChange={() => toggleCanal('Correo')} /><Mail size={17} /><div><strong>Correo</strong><span>{t.correo || 'Sin correo registrado'}</span></div></label>
               <label className={`opt ${canales.includes('WhatsApp') ? 'on' : ''}`}><input type="checkbox" checked={canales.includes('WhatsApp')} onChange={() => toggleCanal('WhatsApp')} /><MessageCircle size={17} /><div><strong>WhatsApp</strong><span>{t.whatsapp || 'Sin número registrado'}</span></div></label>
             </div>
             <span className="lbl-up">Así le llega el mensaje</span>
-            <div className="msg-preview"><strong>DIMARZA · Acceso a plataformas</strong>{'\n'}{mensajeAcceso(t, acc, pin)}</div>
+            <div className="msg-preview"><strong>DIMARZA · Acceso a plataformas</strong>{'\n'}{mensajeAcceso(t, acc, cred)}</div>
             <div className="modal-foot" style={{ padding: '14px 0 0', border: 'none' }}>
               <button className="btn btn-primary" disabled={!canales.length || !t.activo || (!acc.cap && !acc.ssoma && !acc.admin)} onClick={enviar}>
                 <Send size={15} /> {ultimo ? 'Reenviar acceso' : 'Enviar acceso'}

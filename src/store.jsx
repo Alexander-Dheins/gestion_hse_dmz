@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { buildSeed, ROLES, FLUJO_FIRMAS } from './data/seed.js';
+import { sesionModulo } from './acceso/db.jsx';
 
 const KEY = 'ssoma-dmz-demo-v2';
 const KEY_USER = 'ssoma-dmz-user';
@@ -34,7 +35,11 @@ export function StoreProvider({ children }) {
     try { id ? localStorage.setItem(KEY_USER, id) : localStorage.removeItem(KEY_USER); } catch { /* ignore */ }
   };
 
-  const user = db.usuarios.find((u) => u.id === userId) || null;
+  // La sesión viene del ingreso con correo y contraseña; el perfil SSOMA lo asigna el administrador de accesos
+  const [ses] = useState(() => sesionModulo('ssoma'));
+  const perfil = ses.persona && ses.accesos.ssoma ? db.usuarios.find((u) => u.id === (ses.persona.ssomaPerfil || 'u9')) : null;
+  const user = perfil ? { ...perfil, nombre: ses.persona.nombre } : null;
+  void userId;
 
   const value = useMemo(() => {
     const update = (fn, mensaje) => {

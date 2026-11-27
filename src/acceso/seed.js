@@ -36,12 +36,15 @@ export function seedAcceso() {
   const r = rnd(42);
   const pick = (a) => a[Math.floor(r() * a.length)];
   const fijos = [
-    { dni: '10000001', nombre: 'Admin TI', cargo: 'Analista de sistemas', area: 'Administración', unidad: 'Sede Lima', grupos: ['g-ti'] },
-    { dni: '45872103', nombre: 'Jhonatan Ramírez Quispe', cargo: 'Técnico mecánico', area: 'Mantenimiento', unidad: 'U.M. Cerro Azul', grupos: ['g-todo'] },
-    { dni: '40221587', nombre: 'Carlos Mendoza Ríos', cargo: 'Supervisor de mantenimiento', area: 'Mantenimiento', unidad: 'U.M. Cerro Azul', grupos: ['g-cap-sup', 'g-todo'] },
-    { dni: '41556790', nombre: 'Andrea Salas Vega', cargo: 'Coordinadora de capacitación', area: 'Seguridad (SSOMA)', unidad: 'Sede Lima', grupos: ['g-cap-admin', 'g-ssoma'] },
-    { dni: '46120934', nombre: 'Luis Torres Huamán', cargo: 'Soldador', area: 'Mantenimiento', unidad: 'U.M. Pampa Roja', grupos: ['g-cap'] },
-    { dni: '43987015', nombre: 'Rosa Paredes Cano', cargo: 'Supervisor HSE', area: 'Seguridad (SSOMA)', unidad: 'U.M. Pampa Roja', grupos: ['g-ssoma'] },
+    { dni: '10000001', nombre: 'Admin TI', cargo: 'Analista de sistemas', area: 'Administración', unidad: 'Sede Lima', grupos: ['g-ti'], correo: 'ti@dimarza.com.pe', ssomaPerfil: 'u1' },
+    { dni: '45872103', nombre: 'Jhonatan Ramírez Quispe', cargo: 'Técnico mecánico', area: 'Mantenimiento', unidad: 'U.M. Cerro Azul', grupos: ['g-todo'], correo: 'jramirez@dimarza.com.pe', ssomaPerfil: 'u9' },
+    { dni: '40221587', nombre: 'Carlos Mendoza Ríos', cargo: 'Supervisor de mantenimiento', area: 'Mantenimiento', unidad: 'U.M. Cerro Azul', grupos: ['g-cap-sup', 'g-todo'], correo: 'cmendozar@dimarza.com.pe', ssomaPerfil: 'u7' },
+    { dni: '41556790', nombre: 'Andrea Salas Vega', cargo: 'Coordinadora de capacitación', area: 'Seguridad (SSOMA)', unidad: 'Sede Lima', grupos: ['g-cap-admin', 'g-ssoma'], correo: 'asalas@dimarza.com.pe', ssomaPerfil: 'u6' },
+    { dni: '46120934', nombre: 'Luis Torres Huamán', cargo: 'Soldador', area: 'Mantenimiento', unidad: 'U.M. Pampa Roja', grupos: ['g-cap'], correo: 'ltorres@dimarza.com.pe' },
+    { dni: '43987015', nombre: 'Rosa Paredes Cano', cargo: 'Supervisor HSE', area: 'Seguridad (SSOMA)', unidad: 'U.M. Cerro Azul', grupos: ['g-ssoma'], correo: 'rparedes@dimarza.com.pe', ssomaPerfil: 'u4' },
+    { dni: '09876512', nombre: 'Carla Mendoza Vidal', cargo: 'Gerente de Seguridad', area: 'Seguridad (SSOMA)', unidad: 'Sede Lima', grupos: ['g-ssoma'], correo: 'cmendoza@dimarza.com.pe', ssomaPerfil: 'u1' },
+    { dni: '42310987', nombre: 'Jorge Quispe Rojas', cargo: 'Líder HSE', area: 'Seguridad (SSOMA)', unidad: 'U.M. Cerro Azul', grupos: ['g-todo'], correo: 'jquispe@dimarza.com.pe', ssomaPerfil: 'u2' },
+    { dni: '40998123', nombre: 'Ana Villanueva Paz', cargo: 'Médico ocupacional', area: 'Seguridad (SSOMA)', unidad: 'Sede Lima', grupos: ['g-ssoma'], correo: 'avillanueva@dimarza.com.pe', ssomaPerfil: 'u8' },
   ];
   const lista = fijos.map((p) => ({ ...p }));
   const usados = new Set(lista.map((p) => p.dni));
@@ -55,19 +58,29 @@ export function seedAcceso() {
     const gr = area === 'Seguridad (SSOMA)' ? ['g-todo'] : r() < 0.25 ? ['g-todo'] : r() < 0.85 ? ['g-cap'] : [];
     lista.push({ dni, nombre: `${nom} ${ap}`, cargo: pick(CARGOS[area]), area, unidad: pick(UNIDADES.slice(1)), grupos: gr });
   }
+  const correos = new Set(lista.map((p) => p.correo).filter(Boolean));
   const trabajadores = lista.map((p, i) => {
-    const user = p.nombre.split(' ')[0].normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-    const ap = (p.nombre.split(' ')[1] || 'dmz').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    let correo = p.correo;
+    if (!correo) {
+      const sin = (x) => (x || 'dmz').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const base = `${sin(p.nombre.split(' ')[0])[0]}${sin(p.nombre.split(' ')[1])}`;
+      correo = `${base}@dimarza.com.pe`;
+      for (let k = 2; correos.has(correo); k++) correo = `${base}${k}@dimarza.com.pe`;
+      correos.add(correo);
+    }
     const enviado = i < 30 && p.grupos.length > 0;
     return {
+      ssomaPerfil: 'u9',
       ...p,
-      correo: `${user[0]}${ap}@dimarza.com.pe`,
+      correo,
       whatsapp: `+51 9${String(10000000 + ((i * 7919) % 89999999)).padStart(8, '0')}`,
       pin: '1234',
       pinTemporal: false,
+      password: 'Dmz2026',
+      passTemporal: false,
       activo: true,
       envios: enviado ? [{ fecha: new Date(Date.now() - (i + 2) * 86400000).toISOString(), canales: ['Correo', 'WhatsApp'], estado: 'Entregado' }] : [],
     };
   });
-  return { version: 1, grupos: GRUPOS_SEED.map((g) => ({ ...g, permisos: { ...g.permisos } })), trabajadores };
+  return { version: 2, grupos: GRUPOS_SEED.map((g) => ({ ...g, permisos: { ...g.permisos } })), trabajadores };
 }

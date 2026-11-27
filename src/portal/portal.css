@@ -17,7 +17,7 @@
 
 .pt-wrap { display: flex; flex-direction: column; }
 .pt-head { padding: 22px 32px; border-bottom: 1px solid #22344f; }
-.pt-main { flex: 1; width: 100%; max-width: 1080px; margin: 0 auto; padding: 56px 24px; }
+.pt-main { flex: 1; width: 100%; max-width: 940px; margin: 0 auto; padding: 56px 24px; }
 .pt-main h1 { font-size: 28px; letter-spacing: -.3px; }
 .pt-sub { color: #a9b8cc; margin: 6px 0 30px; }
 .pt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
@@ -87,3 +87,7 @@
   .pt-user-txt { display: none; }
   .pt-main > h1 { font-size: 23px; }
 }
+.pt-ingreso { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: 12px; font-weight: 600; color: #475467; background: #f1f4f8; border-radius: 99px; padding: 4px 10px; }
+.pt-foot { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.pt-admin { display: inline-flex; align-items: center; gap: 5px; color: #8fa1bb; }
+.pt-admin:hover { color: #fff; }

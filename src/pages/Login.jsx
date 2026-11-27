@@ -1,34 +1,21 @@
-import { useStore } from '../store.jsx';
-import { ROLES } from '../data/seed.js';
-import { ArrowLeft } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
+import LoginModulo from '../acceso/LoginModulo.jsx';
 
+// Ingreso a SSOMA DMZ con correo y contraseña. El rol dentro de SSOMA
+// (gerente, líder HSE, supervisor, médico…) lo define el administrador de accesos.
 export default function Login() {
-  const { db, setUserId } = useStore();
   return (
-    <div className="login">
-      <div className="login-box">
-        <a href="/" className="pt-to-portal"><ArrowLeft size={15} /> Volver al panel de acceso</a>
-        <div className="login-brand">
-          <svg viewBox="0 0 32 32" width="44" height="44"><rect width="32" height="32" rx="8" fill="#0f1b2d" /><path d="M16 5l9 4v6c0 6-4 10-9 12-5-2-9-6-9-12V9z" fill="#ea7a12" /><path d="M12 16l3 3 5-6" stroke="#fff" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <div>
-            <h1>SSOMA DMZ</h1>
-            <p>Sistema de Gestión de Seguridad, Salud Ocupacional y Medio Ambiente</p>
-          </div>
-        </div>
-        <p className="login-hint">Demo con datos ficticios. Entra con cualquier perfil para ver qué puede hacer y ver cada rol.</p>
-        <div className="login-grid">
-          {db.usuarios.map((u) => (
-            <button key={u.id} className="login-user" onClick={() => setUserId(u.id)}>
-              <div className="avatar avatar-lg">{u.nombre.replace('Dra. ', '').split(' ').map((x) => x[0]).slice(0, 2).join('')}</div>
-              <div>
-                <strong>{u.nombre}</strong>
-                <span>{ROLES[u.rol].nombre}</span>
-                <em>{u.unidad ? db.unidades.find((x) => x.id === u.unidad)?.nombre : 'Todas las unidades'}</em>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <LoginModulo
+      modulo="ssoma"
+      tipo="correo"
+      titulo="SSOMA DMZ"
+      subtitulo="Sistema de gestión de Seguridad, Salud Ocupacional y Medio Ambiente para las unidades mineras."
+      color="#ea7a12"
+      Icono={ShieldCheck}
+      puntos={['Paradas de planta, PETAR e IPERC', 'Inspecciones, incidentes y planes de acción', 'Reportes diarios en el formato de cada unidad']}
+      demo={['09876512', '42310987', '43987015', '40221587', '40998123', '45872103']}
+      permiso={(a) => a.ssoma}
+      onOk={() => { window.location.href = '/ssoma'; }}
+    />
   );
 }

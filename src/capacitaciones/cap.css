@@ -1,17 +1,22 @@
 /* ---------- Capacitaciones · vista del trabajador (según maquetas, Propuesta 3) ---------- */
-.cp-bg { min-height: 100vh; background: #dfe5ee; display: flex; justify-content: center; font-family: Geist, Inter, system-ui, sans-serif; color: #13233A; }
-.cp-app { position: relative; width: 100%; max-width: 460px; min-height: 100vh; background: #F3F5F9; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(14,42,77,.12); }
-.cp-app.cp-dark { background: #0E2A4D; color: #fff; }
-.cp-scroll { flex: 1; padding-bottom: 84px; }
-.cp-scroll.full { padding-bottom: 24px; }
-.cp-page { padding: 22px 18px 10px; }
-.cp-nav { position: fixed; bottom: 0; width: 100%; max-width: 460px; display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-top: 1px solid #E3E8EF; padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); z-index: 20; }
+.cp-web { min-height: 100vh; background: #F3F5F9; font-family: Geist, Inter, system-ui, sans-serif; color: #13233A; }
+.cp-main { min-width: 0; padding-bottom: 84px; }
+.cp-web.is-full .cp-main { padding-bottom: 0; }
+.cp-side { display: none; }
+.cp-nav { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: repeat(4, 1fr); background: #fff; border-top: 1px solid #E3E8EF; padding: 8px 6px calc(8px + env(safe-area-inset-bottom)); z-index: 20; }
 .cp-nav-i { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: #5B6778; }
 .cp-nav-i span { width: 44px; height: 28px; border-radius: 99px; display: grid; place-items: center; }
 .cp-nav-i.on { color: #0E2A4D; font-weight: 600; }
 .cp-nav-i.on span { background: #E3EEF9; color: #2370B8; }
 .cp-toast { position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%); background: #0E2A4D; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 13px; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,.25); max-width: 90vw; text-align: center; }
+.cp-fullpage { min-height: 100vh; }
+.cp-fullpage.cp-dark { background: #0E2A4D; color: #fff; }
 .cp-dark .cp-toast { background: #fff; color: #0E2A4D; }
+.cp-page { padding: 22px 18px 10px; }
+.cp-col { min-width: 0; }
+.web-only { display: none; }
+.cp-av.sm { width: 34px; height: 34px; font-size: 12px; }
+
 
 .cp-h1 { font-size: 24px; font-weight: 600; margin: 4px 0 4px; letter-spacing: -.3px; }
 .cp-sub { margin: 0 0 14px; font-size: 13px; }
@@ -262,3 +267,58 @@
   body.imprime-cert .cert { position: fixed; left: 0; top: 0; width: 100%; border: none; }
   body.imprime-cert .no-print { display: none; }
 }
+
+/* Escritorio: menú lateral, contenido ancho y grillas */
+@media (min-width: 960px) {
+  .cp-web { display: grid; grid-template-columns: 252px 1fr; }
+  .cp-main { padding-bottom: 0; }
+  .cp-nav { display: none; }
+  .cp-toast { bottom: 28px; left: calc(50% + 126px); }
+  .cp-side { display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; background: #0E2A4D; color: #C9D4E3; }
+  .cp-side-brand { display: flex; gap: 10px; align-items: center; padding: 18px 18px 16px; border-bottom: 1px solid #1d3d66; }
+  .cp-side-brand img { width: 40px; height: 36px; object-fit: contain; }
+  .cp-side-brand strong { display: block; color: #fff; font-size: 15px; }
+  .cp-side-brand span { font-size: 12px; color: #8EA0B8; }
+  .cp-side nav { flex: 1; padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .cp-side-i { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px; color: #C9D4E3; font-size: 14px; }
+  .cp-side-i:hover { background: #163459; color: #fff; }
+  .cp-side-i.active { background: #1a3b66; color: #fff; box-shadow: inset 3px 0 0 #F4C400; }
+  .cp-side-i em { margin-left: auto; font-style: normal; font-size: 11px; font-weight: 700; background: #C8102E; color: #fff; border-radius: 99px; padding: 1px 7px; }
+  .cp-side-foot { padding: 10px; border-top: 1px solid #1d3d66; }
+  .cp-side-user { display: flex; gap: 10px; align-items: center; padding: 10px 6px 4px; }
+  .cp-side-user .cp-av { background: #1f4a7d; }
+  .cp-side-user strong { display: block; color: #fff; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cp-side-user span { font-size: 11.5px; color: #8EA0B8; }
+  .cp-side-user button { background: none; border: 1px solid #2b4a75; color: #C9D4E3; border-radius: 8px; width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer; }
+  .cp-page { max-width: 1180px; padding: 34px 40px 40px; }
+  .cp-h1 { font-size: 28px; }
+  .web-only { display: block; }
+  .cp-hello .cp-av { display: none; }
+  .cp-hello strong { font-size: 26px; font-weight: 600; }
+  .cp-hello span { font-size: 13px; }
+  .cp-hello .cp-ibtn { display: none; }
+  .cp-home { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; align-items: start; }
+  .cp-hero { padding: 24px; }
+  .cp-hero strong { font-size: 22px; }
+
+  .cp-thumb { height: 150px; }
+  .cp-lbl.first { margin-top: 0; }
+  .cp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .cp-tabs { margin-top: 14px; }
+  .cp-det { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 28px; align-items: start; }
+  .cp-side-col { position: sticky; top: 24px; }
+  .cp-side-col .cp-reglas { grid-template-columns: 1fr; }
+  .cp-side-col .cp-btn { margin-top: 14px !important; }
+  .cp-prof { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; margin-top: 16px; }
+  .cp-perfil { background: #fff; border: 1px solid #E3E8EF; border-radius: 14px; padding: 24px; margin: 0 0 12px; }
+  .cp-narrow { max-width: 760px; }
+  .cp-page.cp-narrow { margin: 0 auto; }
+  .cp-sheet { max-width: 460px; }
+  .vd { max-width: 1280px; padding: 28px 40px 36px; }
+  .vd-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 28px; align-items: start; }
+  .vd-screen { height: min(52vh, 440px); }
+  .vd-art span { font-size: 110px; }
+  .vd-right .vd-tabs { margin-top: 6px; }
+  .vd-foot { justify-content: flex-start; }
+}
+@media (min-width: 1400px) { .cp-page { padding-left: 56px; padding-right: 56px; } }

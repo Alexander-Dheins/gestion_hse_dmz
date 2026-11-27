@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Send, UserPlus, UserMinus, Upload, Power } from 'lucide-react';
-import { useAcceso, accesosDe, iniciales, pinAleatorio } from '../acceso/db.jsx';
+import { useAcceso, accesosDe, iniciales, pinAleatorio, passAleatoria, SSOMA_PERFILES } from '../acceso/db.jsx';
 import { AREAS, UNIDADES } from '../acceso/seed.js';
 import { PageHeader, Card, Modal, Field, Empty } from '../components/ui.jsx';
-import { AccTags, GrupoChip, fechaHora, aplicarEnvio } from './comun.jsx';
+import { AccTags, GrupoChip, fechaHora, aplicarEnvio, credencialesNuevas } from './comun.jsx';
 
 const FILTROS = [
   ['todos', 'Todos'], ['ambos', 'Capacitaciones + SSOMA'], ['cap', 'Solo Capacitaciones'], ['ssoma', 'Solo SSOMA'],
@@ -44,7 +44,7 @@ export default function Trabajadores() {
   const toggle = (dni) => setSel((s) => (s.includes(dni) ? s.filter((x) => x !== dni) : [...s, dni]));
 
   const masivo = (fn, msg) => {
-    update((d) => { d.trabajadores.filter((t) => sel.includes(t.dni)).forEach(fn); });
+    update((d) => { d.trabajadores.filter((t) => sel.includes(t.dni)).forEach((t) => fn(t, d)); });
     notify(msg);
     setSel([]);
   };
@@ -76,7 +76,7 @@ export default function Trabajadores() {
           </select>
           <button className="btn btn-sm" disabled={!bulkGrupo} onClick={() => masivo((t) => { if (!t.grupos.includes(bulkGrupo)) t.grupos.push(bulkGrupo); }, `${sel.length} agregados a ${gNom}`)}><UserPlus size={14} /> Agregar al grupo</button>
           <button className="btn btn-sm" disabled={!bulkGrupo} onClick={() => masivo((t) => { t.grupos = t.grupos.filter((g) => g !== bulkGrupo); }, `${sel.length} quitados de ${gNom}`)}><UserMinus size={14} /> Quitar del grupo</button>
-          <button className="btn btn-sm" onClick={() => masivo((t) => aplicarEnvio(t, ['Correo', 'WhatsApp'], pinAleatorio()), `Usuario y PIN temporal enviados a ${sel.length} personas`)}><Send size={14} /> Enviar acceso</button>
+          <button className="btn btn-sm" onClick={() => masivo((t, d) => aplicarEnvio(t, ['Correo', 'WhatsApp'], credencialesNuevas(accesosDe(d, t), pinAleatorio, passAleatoria)), `Accesos temporales enviados a ${sel.length} personas`)}><Send size={14} /> Enviar acceso</button>
           <button className="btn btn-sm" onClick={() => masivo((t) => { t.activo = !t.activo; }, f === 'inactivos' ? 'Usuarios reactivados' : 'Usuarios desactivados')}><Power size={14} /> {f === 'inactivos' ? 'Reactivar' : 'Desactivar'}</button>
           <button className="btn btn-sm btn-ghost" style={{ marginLeft: 'auto', color: '#fff' }} onClick={() => setSel([])}>Cancelar</button>
         </div>
@@ -95,7 +95,7 @@ export default function Trabajadores() {
               {lista.map((t) => (
                 <tr key={t.dni} className={sel.includes(t.dni) ? 'sel' : ''}>
                   <td className="chk"><input type="checkbox" checked={sel.includes(t.dni)} onChange={() => toggle(t.dni)} aria-label={`Seleccionar ${t.nombre}`} /></td>
-                  <td><div className="person"><div className="avatar">{iniciales(t.nombre)}</div><div><strong>{t.nombre}</strong><span>DNI {t.dni}</span></div></div></td>
+                  <td><div className="person"><div className="avatar">{iniciales(t.nombre)}</div><div><strong>{t.nombre}</strong><span>DNI {t.dni} · {t.correo}</span></div></div></td>
                   <td>{t.area}<div className="muted small">{t.cargo} · {t.unidad}</div></td>
                   <td>{t.grupos.length ? t.grupos.map((g) => <GrupoChip key={g} g={db.grupos.find((x) => x.id === g)} />) : <span className="muted small">Sin grupo</span>}</td>
                   <td><AccTags acc={accesosDe(db, t)} /></td>
@@ -115,12 +115,13 @@ export default function Trabajadores() {
 
 function NuevoTrabajador({ onClose }) {
   const { db, update, notify } = useAcceso();
-  const [f, setF] = useState({ dni: '', nombre: '', cargo: '', area: AREAS[0], unidad: UNIDADES[1], correo: '', whatsapp: '+51 ', grupos: [] });
+  const [f, setF] = useState({ dni: '', nombre: '', cargo: '', area: AREAS[0], unidad: UNIDADES[1], correo: '', whatsapp: '+51 ', grupos: [], ssomaPerfil: 'u9' });
+  const correoUsado = f.correo && db.trabajadores.some((t) => t.correo.toLowerCase() === f.correo.toLowerCase());
   const existe = db.trabajadores.some((t) => t.dni === f.dni);
-  const ok = /^\d{8}$/.test(f.dni) && !existe && f.nombre.trim().length > 3;
+  const ok = /^\d{8}$/.test(f.dni) && !existe && !correoUsado && f.nombre.trim().length > 3;
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const guardar = () => {
-    update((d) => { d.trabajadores.unshift({ ...f, nombre: f.nombre.trim(), pin: '', pinTemporal: true, activo: true, envios: [] }); });
+    update((d) => { d.trabajadores.unshift({ ...f, nombre: f.nombre.trim(), pin: '', pinTemporal: true, password: '', passTemporal: true, activo: true, envios: [] }); });
     notify(`${f.nombre} agregado. Envíale su acceso desde su ficha.`);
     onClose();
   };
@@ -134,8 +135,10 @@ function NuevoTrabajador({ onClose }) {
         <Field label="Unidad / sede"><select value={f.unidad} onChange={set('unidad')}>{UNIDADES.map((a) => <option key={a}>{a}</option>)}</select></Field>
         <Field label="Correo"><input type="email" value={f.correo} onChange={set('correo')} /></Field>
         <Field label="WhatsApp"><input value={f.whatsapp} onChange={set('whatsapp')} /></Field>
+        <Field label="Rol en SSOMA DMZ (si tiene acceso)"><select value={f.ssomaPerfil} onChange={set('ssomaPerfil')}>{SSOMA_PERFILES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></Field>
       </div>
       {existe && <p className="cell-err">Ya existe un trabajador con ese DNI.</p>}
+      {correoUsado && <p className="cell-err">Ese correo ya lo usa otro trabajador.</p>}
       <span className="lbl-up">Grupos</span>
       <div className="opt-list">
         {db.grupos.map((g) => {

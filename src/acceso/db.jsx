@@ -4,8 +4,10 @@ import { seedAcceso } from './seed.js';
 // Control de accesos compartido por el portal, el panel de administración,
 // Capacitaciones y SSOMA DMZ. En la demo vive en el navegador (localStorage);
 // en producción será una API con base de datos.
-const KEY = 'dmz-acceso-v1';
-const KEY_SESION = 'dmz-sesion';
+const KEY = 'dmz-acceso-v2';
+// Cada módulo tiene su propio ingreso y su propia sesión:
+//   Capacitaciones -> DNI + PIN          SSOMA DMZ y Administración -> correo + contraseña
+const KEY_SESION = { cap: 'dmz-sesion-cap', ssoma: 'dmz-sesion-ssoma', admin: 'dmz-sesion-admin' };
 
 export function cargarAcceso() {
   try {
@@ -18,11 +20,11 @@ export function guardarAcceso(db) {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* sin almacenamiento */ }
 }
 
-export function getSesionDni() {
-  try { return localStorage.getItem(KEY_SESION); } catch { return null; }
+export function getSesion(mod) {
+  try { return localStorage.getItem(KEY_SESION[mod]); } catch { return null; }
 }
-export function setSesionDni(dni) {
-  try { dni ? localStorage.setItem(KEY_SESION, dni) : localStorage.removeItem(KEY_SESION); } catch { /* sin almacenamiento */ }
+export function setSesion(mod, dni) {
+  try { dni ? localStorage.setItem(KEY_SESION[mod], dni) : localStorage.removeItem(KEY_SESION[mod]); } catch { /* sin almacenamiento */ }
 }
 
 const RANGO = { participante: 1, supervisor: 2, admin: 3 };
@@ -44,17 +46,35 @@ export function accesosDe(db, persona) {
 
 export const CAP_ROL = { participante: 'Participante', supervisor: 'Supervisor', admin: 'Administrador' };
 
-// Sesión actual leída una sola vez (cada módulo es una carga de página)
-export function sesionActual() {
+// Sesión de un módulo, leída al cargar la página
+export function sesionModulo(mod) {
   const db = cargarAcceso();
-  const dni = getSesionDni();
-  const persona = db.trabajadores.find((t) => t.dni === dni) || null;
+  const dni = getSesion(mod);
+  const persona = db.trabajadores.find((t) => t.dni === dni && t.activo) || null;
   return { db, persona, accesos: accesosDe(db, persona) };
 }
 
-export function cerrarSesion() {
-  setSesionDni(null);
-  window.location.href = '/';
+export function cerrarSesion(mod) {
+  setSesion(mod, null);
+  window.location.href = mod === 'cap' ? '/capacitaciones' : mod === 'ssoma' ? '/ssoma' : '/admin';
+}
+
+// Perfiles de SSOMA DMZ que se pueden asignar (en la demo, cada uno corresponde a un usuario de prueba del módulo)
+export const SSOMA_PERFILES = [
+  { id: 'u1', label: 'Gerente de Seguridad · todas las unidades' },
+  { id: 'u6', label: 'Analista HSE · todas las unidades' },
+  { id: 'u2', label: 'Líder HSE · U.M. Cerro Azul' },
+  { id: 'u3', label: 'Líder HSE · U.M. Pampa Roja' },
+  { id: 'u4', label: 'Supervisor HSE · U.M. Cerro Azul' },
+  { id: 'u5', label: 'Asistente HSE · U.M. Cerro Azul' },
+  { id: 'u7', label: 'Supervisor de mantenimiento · U.M. Cerro Azul' },
+  { id: 'u8', label: 'Médico ocupacional · todas las unidades' },
+  { id: 'u9', label: 'Trabajador · U.M. Cerro Azul' },
+];
+export const perfilSsoma = (id) => SSOMA_PERFILES.find((p) => p.id === id)?.label || 'Trabajador';
+
+export function passAleatoria() {
+  return `Dmz-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 // ---------- Contexto para el panel de administración ----------

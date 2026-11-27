@@ -69,6 +69,8 @@ function VideoModulo() {
     <MovilFull dark>
       <div className="vd">
         <Atras to={`${B}/curso/${id}`} label={x.c.nombre} right={<span className="mono vd-n">{idx + 1} / {x.c.modulos.length}</span>} />
+        <div className="vd-grid">
+        <div className="vd-left">
         <div className="vd-screen" style={{ '--c': x.c.color }} onClick={() => setPlay(!play)}>
           <div className="vd-art"><span>{x.c.codigo}</span></div>
           <div className="vd-tools"><span><Sun size={15} /></span><span><Maximize size={15} /></span></div>
@@ -91,6 +93,8 @@ function VideoModulo() {
           <button disabled aria-label="Adelantar (bloqueado)"><Lock size={16} /></button>
         </div>
 
+        </div>
+        <div className="vd-right">
         <div className="vd-tabs">
           <button className={tab === 'preg' ? 'on' : ''} onClick={() => setTab('preg')}>Preguntas <em>{m.preguntas.length}</em></button>
           <button className={tab === 'rec' ? 'on' : ''} onClick={() => setTab('rec')}>Recursos de apoyo</button>
@@ -156,6 +160,8 @@ function VideoModulo() {
           </div>
         )}
         <p className="vd-foot"><Info size={13} /> Si se corta la señal, el video sigue desde donde quedaste.</p>
+        </div>
+        </div>
       </div>
     </MovilFull>
   );
@@ -173,7 +179,7 @@ export function Encuesta() {
   const etiquetas = ['', 'Malo', 'Regular', 'Bueno', 'Muy bueno', 'Excelente'];
   return (
     <MovilFull>
-      <div className="cp-page">
+      <div className="cp-page cp-narrow">
         <Atras to={`${B}/curso/${id}`} label="Mis cursos" />
         <div className="cp-card cp-enc">
           <span className="cp-lbl">Encuesta de satisfacción</span>
@@ -208,7 +214,7 @@ export function Resultado() {
   const quedan = x.maxIntentos - p.intentos.length;
   return (
     <MovilFull>
-      <div className="cp-page">
+      <div className="cp-page cp-narrow">
         <Atras to={`${B}/curso/${id}`} label={c.nombre} />
         <h1 className="cp-h1">Resultado final</h1>
         <div className={`cp-nota ${ok ? 'ok' : 'no'}`}>

@@ -27,14 +27,24 @@ export function permisosTexto(p) {
   return x.length ? x.join(' + ') : 'Sin permisos';
 }
 
-// Simula el envío de usuario y PIN temporal (en producción: correo + API de WhatsApp)
-export function aplicarEnvio(t, canales, pin) {
-  t.pin = pin;
-  t.pinTemporal = true;
+// Simula el envío de credenciales temporales (en producción: correo + API de WhatsApp).
+// Capacitaciones usa DNI + PIN; SSOMA DMZ y Administración usan correo + contraseña.
+export function aplicarEnvio(t, canales, cred) {
+  if (cred.pin) { t.pin = cred.pin; t.pinTemporal = true; }
+  if (cred.pass) { t.password = cred.pass; t.passTemporal = true; }
   t.envios = [{ fecha: new Date().toISOString(), canales, estado: 'Enviado' }, ...(t.envios || [])];
 }
 
-export function mensajeAcceso(t, acc, pin) {
-  const mods = [acc.cap && 'Capacitaciones', acc.ssoma && 'SSOMA DMZ', acc.admin && 'Administración de accesos'].filter(Boolean);
-  return `Hola ${t.nombre.split(' ')[0]}, ya tienes acceso a ${mods.length ? mods.join(' y ') : '(sin módulos habilitados)'}.\n\nUsuario: ${t.dni}\nPIN temporal: ${pin}\nIngresa en: gestionhsedmz.vercel.app\n\nAl entrar por primera vez te pediremos crear tu propio PIN. No compartas este mensaje.`;
+export function credencialesNuevas(acc, pinAleatorio, passAleatoria) {
+  return { pin: acc.cap ? pinAleatorio() : null, pass: acc.ssoma || acc.admin ? passAleatoria() : null };
+}
+
+export function mensajeAcceso(t, acc, cred) {
+  const partes = [`Hola ${t.nombre.split(' ')[0]}, estos son tus accesos:`];
+  if (acc.cap) partes.push(`CAPACITACIONES\nUsuario (DNI): ${t.dni}\nPIN temporal: ${cred.pin || '••••'}`);
+  if (acc.ssoma) partes.push(`SSOMA DMZ\nCorreo: ${t.correo}\nContraseña temporal: ${cred.pass || '••••••••'}`);
+  if (acc.admin) partes.push(`ADMINISTRACIÓN DE ACCESOS\nUsa el mismo correo y contraseña.`);
+  if (!acc.cap && !acc.ssoma && !acc.admin) partes.push('(Todavía no tienes módulos habilitados.)');
+  partes.push('Ingresa en: gestionhsedmz.vercel.app\nEn tu primer ingreso te pediremos cambiar el PIN o la contraseña. No compartas este mensaje.');
+  return partes.join('\n\n');
 }
