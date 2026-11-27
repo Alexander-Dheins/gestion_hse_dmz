@@ -6,7 +6,7 @@ export default function CapacitacionesApp() {
   return (
     <div className="pt-wrap">
       <header className="pt-head">
-        <Logo size={56} />
+        <Logo size={64} />
       </header>
       <main className="pt-main">
         <div className="pt-empty">

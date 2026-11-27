@@ -13,7 +13,7 @@
 .pt-logo { display: flex; align-items: center; gap: calc(var(--s) * .18); }
 .pt-logo-txt strong { display: block; font-size: calc(var(--s) * .36); letter-spacing: 2px; line-height: 1; }
 .pt-logo-txt span { display: block; font-size: max(11px, calc(var(--s) * .13)); color: #8fa1bb; margin-top: 6px; letter-spacing: .4px; }
-.pt-logo-img { display: block; width: auto; }
+.pt-logo-img { display: block; width: auto; filter: drop-shadow(0 4px 14px rgba(0,0,0,.35)); }
 
 .pt-wrap { display: flex; flex-direction: column; }
 .pt-head { padding: 22px 32px; border-bottom: 1px solid #22344f; }

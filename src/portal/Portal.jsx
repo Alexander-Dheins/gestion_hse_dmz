@@ -44,7 +44,7 @@ export default function Portal() {
     return (
       <div className={`pt-splash ${saliendo ? 'out' : ''}`}>
         <div className="pt-splash-in">
-          <Logo size={110} />
+          <Logo size={150} />
           <div className="pt-loader"><i /></div>
         </div>
       </div>
@@ -54,7 +54,7 @@ export default function Portal() {
   return (
     <div className="pt-wrap">
       <header className="pt-head">
-        <Logo size={56} />
+        <Logo size={64} />
       </header>
       <main className="pt-main">
         <h1>Panel de acceso</h1>
